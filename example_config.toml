@@ -1,0 +1,12 @@
+[lastfm]
+api_key = "api_key"
+api_secret = "api_secret"
+username = "username"
+password = "password"
+
+[listenbrainz]
+token = "token"
+
+[video]
+link = "https::///www.youtube.com/something"
+second_link = "https::///www.youtube.com/something"

@@ -1,0 +1,55 @@
+name: Create Release Builds
+
+on:
+  push:
+    tags:
+      - "v*" # matches v1.0.1, v1.2, v2, etc
+  
+jobs:
+  once:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create a release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: true
+
+  build:
+    name: Create release build and upload binaries
+    needs: once
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        target: builder
+        tags: |
+          lofigirl:latest
+    - name: Extract binary
+      run:
+        docker cp $(docker create lofigirl:latest):/app/target/release/lofigirl ${{ github.workspace }}/lofigirl
+    - name: Make Zip 
+      run: 
+        7z a -tzip ${{ github.workspace }}/lofigirl-linux.zip ${{ github.workspace }}/lofigirl
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.once.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/target/release/dpr-${{ matrix.os }}.zip
+        asset_name: dpr-${{ matrix.os }}.zip
+        asset_content_type: application/octet-stream
