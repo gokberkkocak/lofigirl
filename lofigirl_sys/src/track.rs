@@ -11,7 +11,7 @@ pub struct Track {
 
 impl Track {
     pub fn from_ocr_text(text: &str) -> Result<Track> {
-        let mut it = text.split("-");
+        let mut it = text.split('-');
         let artist = it.next().ok_or(TrackError::SplitError)?.trim().to_string();
         let song = it.next().ok_or(TrackError::SplitError)?.trim().to_string();
         Ok(Track { artist, song })
