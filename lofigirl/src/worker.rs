@@ -43,7 +43,7 @@ impl Worker {
         }
     }
 
-    pub async fn fragile_work(&mut self) -> Result<()> {
+    async fn fragile_work(&mut self) -> Result<()> {
         let next_track = self.image_proc.next_track().await?;
         let prev = self.prev_track_with_count.take();
         match prev {
