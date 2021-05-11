@@ -30,7 +30,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Build and push
+    - name: Build docker image for one stage
       uses: docker/build-push-action@v2
       with:
         context: .
@@ -50,6 +50,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/target/release/dpr-${{ matrix.os }}.zip
-        asset_name: dpr-${{ matrix.os }}.zip
+        asset_path: ${{ github.workspace }}/lofigirl-linux.zip
+        asset_name: lofigirl-linux.zip
         asset_content_type: application/octet-stream
