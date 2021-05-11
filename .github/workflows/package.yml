@@ -39,6 +39,6 @@ jobs:
           push: true
           tags: |
             gokberkkocak/lofigirl:latest
-            gokberkkocak/lofigirl:${{ github.ref }}
+            gokberkkocak/lofigirl:${${{ github.ref }}:1}
             ghcr.io/gokberkkocak/lofigirl:latest
-            ghcr.io/gokberkkocak/lofigirl:${{ github.ref }}
+            ghcr.io/gokberkkocak/lofigirl:${${{ github.ref }}:1}
