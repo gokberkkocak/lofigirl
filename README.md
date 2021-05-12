@@ -13,7 +13,7 @@ This project uses ```opencv``` library to capture\process images and ```tesserac
 On a minimal arch installation, these packages (besides rust and cargo) were required to be able compile and run the system;
 
 ```
-pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract tesseract-data-eng clang
+pacman -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract tesseract-data-eng clang
 ```
 
 ### Windows
