@@ -25,6 +25,8 @@ Using [vcpkg](https://github.com/microsoft/vcpkg), it should be possible to comp
 vcpkg install llvm opencv4[contrib,nonfree] tesseract
 ```
 
+I might be able to get into compiling a static binary for windows later.
+
 ## Compiling
 
 One of the crates [rustube](https://lib.rs/crates/rustube) in the project requires nightly compiler so the project only compiles on nightly compiler at the moment.
@@ -99,10 +101,33 @@ docker run -d -v /path/to/your/config.toml:/config.toml gokberkkocak/lofigirl:la
 
 # How does it Work
 
+## Main stream as an example
+
 - rustube takes video link and brings the raw video stream for opencv.
 - opencv opens the stream and captures a single frame.
-![full](images/example_1_full.jpg)
+![full_1](images/example_1_full.jpg)
 - The image gets cropped
-![cropped](images/example_1_cropped.jpg)
+![cropped_1](images/example_1_cropped.jpg)
 - The background is removed by a mask.
-![masked](images/example_1_masked.jpg)
+![masked_1](images/example_1_masked.jpg)
+- tesseract-ocr checks the image
+- The info is sent to LastFM and/or ListenBrainz.
+![lastfm_1](images/example_1_lastfm.png)
+![listenbrainz_1](images/example_1_listenbrainz.png)
+
+## Second stream
+
+It work the same way for the second stream as well.
+- Full image
+![full_2](images/example_2_full.jpg)
+- Cropped image
+![cropped_](images/example_2_cropped.jpg)
+- Masked
+![masked_2](images/example_2_masked.jpg)
+- Sending to LastFM and ListenBrainz.
+![lastfm_2](images/example_2_lastfm.png)
+![listenbrainz_2](images/example_2_listenbrainz.png)
+
+# Limitations
+
+I'm aware that opencv occasionally (sometimes consecutively) fails to read header information from a stream but I haven't managed to find the source of the problem. Because of it, it's possible that some listen information might not be sent. So no guarantees, but I hope it's better than sending nothing!
