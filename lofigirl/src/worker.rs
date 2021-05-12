@@ -83,6 +83,6 @@ impl TrackWithCount {
 
 #[derive(Error, Debug)]
 pub enum WorkerError {
-    #[error("Neither LastFM nor Listenbrainz config is given.")]
+    #[error("Second video link cannot be found on config file.")]
     MissingSecondVideoLink,
 }
