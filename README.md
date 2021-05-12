@@ -14,7 +14,6 @@ On a minimal arch installation, these packages (besides rust and cargo) were req
 
 ```
 pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract tesseract-data-eng clang
-
 ```
 
 ### Windows
