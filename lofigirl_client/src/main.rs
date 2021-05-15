@@ -4,13 +4,10 @@ mod worker;
 
 use anyhow::Result;
 use config::Config;
-use once_cell::sync::Lazy;
-use std::{path::PathBuf, time::Duration};
+use lofigirl_shared::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
+use std::path::PathBuf;
 use structopt::StructOpt;
 use worker::Worker;
-
-static REGULAR_INTERVAL: Lazy<Duration> = Lazy::new(|| Duration::from_secs(15));
-static FAST_TRY_INTERVAL: Lazy<Duration> = Lazy::new(|| Duration::from_secs(5));
 
 /// Now written in Rust
 #[derive(StructOpt, Debug)]
@@ -38,7 +35,7 @@ async fn body() -> Result<()> {
     loop {
         let wait_duration = match worker.work().await {
             true => &REGULAR_INTERVAL,
-            false => &FAST_TRY_INTERVAL
+            false => &FAST_TRY_INTERVAL,
         };
         std::thread::sleep(**wait_duration);
     }
