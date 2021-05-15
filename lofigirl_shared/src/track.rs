@@ -3,7 +3,9 @@ use std::fmt;
 use anyhow::Result;
 use strsim::jaro;
 use thiserror::Error;
+use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Track {
     pub artist: String,
     pub song: String,
