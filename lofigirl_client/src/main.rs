@@ -9,9 +9,15 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use worker::Worker;
 
+#[cfg(not(feature = "standalone"))]
+const APP_NAME: &'static str = "lofigirl";
+
+#[cfg(feature = "standalone")]
+const APP_NAME: &'static str = "lofigirl_standalone";
+
 /// Now written in Rust
 #[derive(StructOpt, Debug)]
-#[structopt(name = "lofigirl")]
+#[structopt(name = APP_NAME)]
 struct Opt {
     /// Configuration toml file.
     #[structopt(short, long, default_value = "config.toml")]

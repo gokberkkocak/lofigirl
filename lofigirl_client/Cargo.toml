@@ -1,6 +1,6 @@
 [package]
 name = "lofigirl"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Gokberk Kocak <gokberkkocak@gmail.com>"]
 edition = "2018"
 
@@ -21,7 +21,5 @@ url = { version = "2.2", optional = true}
 notify-rust = { version = "4.5", optional = true }
 
 [features]
-# default = ["client"]
 standalone = ["lofigirl_sys", "url"]
-# client = ["reqwest", "serde_json"]
 notify = ["notify-rust"]

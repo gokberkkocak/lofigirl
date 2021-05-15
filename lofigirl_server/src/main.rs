@@ -9,14 +9,14 @@ use worker::ServerWorker;
 
 use crate::config::ServerConfig;
 
-/// Now written in Rust
+/// Scrooble the tracks you listen on lofigirl streams.
 #[derive(StructOpt, Debug)]
 #[structopt(name = "lofigirl_server")]
 struct Opt {
     /// Configuration toml file.
     #[structopt(short, long, default_value = "config.toml")]
     config: PathBuf,
-    /// Only ocr first video
+    /// Only provide information for the first given link.
     #[structopt(short, long)]
     only_first: bool,
 }
