@@ -12,12 +12,14 @@ RUN pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesserac
 
 RUN rustup toolchain install nightly
 
-RUN cargo build --release
+RUN cargo build --release --features standalone
 
 
 FROM archlinux as runner
 
 COPY --from=builder /app/target/release/lofigirl /usr/bin/
+
+COPY --from=builder /app/target/release/lofigirl_server /usr/bin/
 
 RUN pacman-key --init
 
