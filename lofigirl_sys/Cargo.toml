@@ -7,9 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+lofigirl_shared = { path = "../lofigirl_shared"}
 opencv = { version = "0.53", features = ["clang-runtime"]}
 leptess = "0.13"
-strsim = "0.10"
 anyhow = "1.0"
 thiserror = "1.0"
 rustube = "0.2"
