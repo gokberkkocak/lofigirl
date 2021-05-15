@@ -1,2 +1,7 @@
 [workspace]
-members = ["lofigirl", "lofigirl_sys"]
+members = [
+    "lofigirl_client", 
+    "lofigirl_sys", 
+    "lofigirl_shared",
+    "lofigirl_server"
+]

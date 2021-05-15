@@ -4,17 +4,20 @@ mod worker;
 
 use anyhow::Result;
 use config::Config;
-use once_cell::sync::Lazy;
-use std::{path::PathBuf, time::Duration};
+use lofigirl_shared::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
+use std::path::PathBuf;
 use structopt::StructOpt;
 use worker::Worker;
 
-static REGULAR_INTERVAL: Lazy<Duration> = Lazy::new(|| Duration::from_secs(15));
-static FAST_TRY_INTERVAL: Lazy<Duration> = Lazy::new(|| Duration::from_secs(5));
+#[cfg(not(feature = "standalone"))]
+const APP_NAME: &str = "lofigirl";
 
-/// Now written in Rust
+#[cfg(feature = "standalone")]
+const APP_NAME: &str = "lofigirl_standalone";
+
+/// Scrobble the tracks you listen on lofigirl streams.
 #[derive(StructOpt, Debug)]
-#[structopt(name = "lofigirl")]
+#[structopt(name = APP_NAME)]
 struct Opt {
     /// Configuration toml file.
     #[structopt(short, long, default_value = "config.toml")]
@@ -38,7 +41,7 @@ async fn body() -> Result<()> {
     loop {
         let wait_duration = match worker.work().await {
             true => &REGULAR_INTERVAL,
-            false => &FAST_TRY_INTERVAL
+            false => &FAST_TRY_INTERVAL,
         };
         std::thread::sleep(**wait_duration);
     }

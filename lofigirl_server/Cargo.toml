@@ -1,0 +1,23 @@
+[package]
+name = "lofigirl_server"
+version = "0.1.0"
+authors = ["Gokberk Kocak <gokberkkocak@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lofigirl_sys = { path = "../lofigirl_sys"}
+lofigirl_shared = { path = "../lofigirl_shared"}
+serde = { version = "1.0", features = ["derive"] }
+# actix 4 beta usage for tokio 1.x
+actix-web = "=4.0.0-beta.5"
+actix-service = "=2.0.0-beta.5"
+actix-http = "=3.0.0-beta.5"
+actix-rt = "2.2"
+thiserror = "1.0"
+structopt = "0.3"
+toml = "0.5"
+anyhow = "1.0"
+url = "2.2"
+parking_lot = "0.11"

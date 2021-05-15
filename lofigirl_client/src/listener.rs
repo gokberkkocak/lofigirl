@@ -2,8 +2,13 @@ use std::fmt;
 
 use anyhow::Result;
 use listenbrainz::ListenBrainz;
-use lofigirl_sys::track::Track;
+use lofigirl_shared::track::Track;
 use rustfm_scrobble::{Scrobble, Scrobbler};
+
+#[cfg(feature = "notify")]
+use notify_rust::Notification;
+#[cfg(feature = "notify")]
+use notify_rust::Timeout;
 
 use crate::config::Config;
 
@@ -37,10 +42,24 @@ impl Listener {
     }
 
     pub fn send_listen(&self, track: &Track) -> Result<()> {
+        #[cfg(feature = "notify")]
+        Notification::new()
+            .summary("Scrobbled")
+            .body(&format!("{} - {}", &track.artist, &track.song))
+            .appname("lofigirl")
+            .timeout(Timeout::Milliseconds(6000))
+            .show()?;
         self.send_action(Action::Listened, track)
     }
 
     pub fn send_now_playing(&self, track: &Track) -> Result<()> {
+        #[cfg(feature = "notify")]
+        Notification::new()
+            .summary("Now playing")
+            .body(&format!("{} - {}", &track.artist, &track.song))
+            .appname("lofigirl")
+            .timeout(Timeout::Milliseconds(6000))
+            .show()?;
         self.send_action(Action::PlayingNow, track)
     }
 
@@ -88,7 +107,7 @@ impl fmt::Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Action::Listened => write!(f, "Listened"),
-            Action::PlayingNow => write!(f, "Playing Now")
+            Action::PlayingNow => write!(f, "Playing Now"),
         }
     }
 }

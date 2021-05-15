@@ -4,11 +4,12 @@ use opencv::core::Vector;
 use opencv::core::{Mat, MatTrait, Rect_};
 use opencv::videoio::VideoCapture;
 use opencv::videoio::VideoCaptureTrait;
-use rustube::VideoFetcher;
 use thiserror::Error;
 use url::Url;
 
-use crate::track::Track;
+use crate::capture::YoutubeLinkCapture;
+
+use lofigirl_shared::track::Track;
 
 const DPI: i32 = 70;
 
@@ -85,29 +86,8 @@ impl ImageProcessor {
     }
 }
 
-struct YoutubeLinkCapture;
-
-impl YoutubeLinkCapture {
-    pub async fn get_raw_link(url: &Url) -> Result<String> {
-        let raw_link = VideoFetcher::from_url(url)?
-            .fetch()
-            .await?
-            .descramble()?
-            .best_video()
-            .ok_or(ImageProcessingError::YoutubeLinkCaptureError)?
-            .signature_cipher
-            .url
-            .to_string();
-        #[cfg(debug_assertions)]
-        println!("Raw link: {}", raw_link);
-        Ok(raw_link)
-    }
-}
-
 #[derive(Error, Debug)]
 pub enum ImageProcessingError {
-    #[error("Capturing the raw link has failed.")]
-    YoutubeLinkCaptureError,
     #[error("Reading the frame has failed.")]
     ImageReadError,
     #[error("Writing the image for debug has failed.")]

@@ -1,14 +1,17 @@
 use std::path::Path;
 
 use anyhow::Result;
+use lofigirl_shared::config::{
+    ConfigError, LastFMConfig, ListenBrainzConfig, ServerConfig, VideoConfig,
+};
 use serde::Deserialize;
-use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub lastfm: Option<LastFMConfig>,
     pub listenbrainz: Option<ListenBrainzConfig>,
-    pub video: VideoConfig,
+    pub video: Option<VideoConfig>,
+    pub server: Option<ServerConfig>,
 }
 
 impl Config {
@@ -18,29 +21,18 @@ impl Config {
         (config.lastfm.is_some() && config.listenbrainz.is_some())
             .then(|| ())
             .ok_or(ConfigError::EmptyListeners)?;
+        #[cfg(feature = "standalone")]
+        config
+            .video
+            .is_some()
+            .then(|| ())
+            .ok_or(ConfigError::EmptyVideoConfig)?;
+        #[cfg(not(feature = "standalone"))]
+        config
+            .server
+            .is_some()
+            .then(|| ())
+            .ok_or(ConfigError::EmptyServerConfig)?;
         Ok(config)
     }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct LastFMConfig {
-    pub api_key: String,
-    pub api_secret: String,
-    pub username: String,
-    pub password: String,
-}
-#[derive(Debug, Deserialize)]
-pub struct ListenBrainzConfig {
-    pub token: String,
-}
-#[derive(Debug, Deserialize)]
-pub struct VideoConfig {
-    pub link: String,
-    pub second_link: Option<String>,
-}
-
-#[derive(Error, Debug)]
-pub enum ConfigError {
-    #[error("Neither LastFM nor Listenbrainz config is given.")]
-    EmptyListeners,
 }
