@@ -4,9 +4,22 @@ Lofi Girl Scrobbler helps you scrobble (mark as listened) Lofi Girl (previously 
 
 # Getting Started
 
+
+
 ## Pre-Requisites 
 
 This project uses ```opencv``` library to capture\process images and ```tesseract-ocr``` to make an image to text analysis.
+
+## Modules
+
+This project includes different modules and several features which you can choose according to your preference. The list of binaries which are compiled on releases are
+
+- Lofigirl - Includes Optional multi-os notification system.
+    - Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to retrieve information from the ```server``` module.
+    - Standalone - The standalone version which runs the images processing and ocr by itself and submits the data on a regular interval. Requires all the dependencies to be present in the system.
+- Lofigirl Server - The http server module which does the image processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system.
+
+## Installing all dependencies
 
 ### Arch Linux
 
@@ -24,21 +37,21 @@ Using [vcpkg](https://github.com/microsoft/vcpkg), it should be possible to comp
 vcpkg install llvm opencv4[contrib,nonfree] tesseract
 ```
 
-I might be able to get into compiling a static binary for windows later.
+### MacOS
+
+```
+brew install opencv tesseract leptonica
+```
 
 ## Compiling
 
 One of the crates [rustube](https://lib.rs/crates/rustube) in the project requires nightly compiler so the project only compiles on nightly compiler at the moment.
 
-```rust
-cargo +nightly build  --release
+```
+cargo +nightly build --release
 ```
 
-## Running
-
-```
-./target/release/lofigirl
-```
+Check [server](lofigirl_server/README.md) and/or [client](lofigirl_client/README.md) for more information.
 
 ## Configuration
 
@@ -49,53 +62,49 @@ On the previous project, the system would use the youtube channel information to
 All of the configuration can be put into a toml file like in the [example](https://github.com/gokberkkocak/lofigirl/blob/main/example_config.toml)
 
 ```toml
-[lastfm] # optional
+[lastfm] # client optional - server ignore
 api_key = "api_key"
 api_secret = "api_secret"
 username = "username"
 password = "password"
 
-[listenbrainz] # optional
+[listenbrainz] # client optional - server ignore
 token = "token"
 
-[video]
+[video] # it is mandatory for every module except client only
 link = "https::///www.youtube.com/something"
 second_link = "https::///www.youtube.com/something" # optional
+
+[server] # client only mandatory, others would ignore.
+link = "http://127.0.0.1:8080"
 ```
 
 Both LastFM and ListenBrainz are optional. You can use one or both depending however you want.
 
 ## Usage
 
-```
-lofigirl 0.1.0
-Now written in Rust
-
-USAGE:
-    lofigirl [FLAGS] [OPTIONS]
-
-FLAGS:
-    -h, --help       Prints help information
-    -s, --second     Use second video link for listen info
-    -V, --version    Prints version information
-
-OPTIONS:
-    -c, --config <config>    Configuration toml file [default: config.toml]
-```
-The program will try to use ```config.toml``` as default file. You can give your own file with the config iotuib.
+Check [server](lofigirl_server/README.md) or [client](lofigirl_client/README.md) usage on their sections.
 
 ## Docker
 
-Since it's dependent heavy, I decided to provide a docker image as well. 
+Docker images includes all binaries (without notification support).
 
 ```
 docker pull gokberkkocak/lofigirl
 ```
 
-To run it pass your configuration file to the container by ```-v```.
+Use ```-v``` to pass your configuration file to the container.
 
 ```
 docker run -d -v /path/to/your/config.toml:/config.toml gokberkkocak/lofigirl:latest 
+```
+
+The default entry point of the Docker image is the server module.
+
+To use with other modules, use ``--entrypoint`` flag.
+
+```
+docker run -d -v /path/to/your/config.toml:/config.toml --entrypoint {lofigirl_standalone|lofigirl} gokberkkocak/lofigirl:latest 
 ```
 
 # How does it Work
