@@ -27,7 +27,7 @@ jobs:
           prerelease: true
 
   build_server:
-    name: Create release build and upload binaries for linux
+    name: Create server/standalone release builds and upload binaries for linux
     needs: once
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +43,7 @@ jobs:
     - name: Extract binary
       run: |
         mkdir -p ${{ github.workspace }}/bin
-        docker cp $(docker create lofigirl:latest):/app/target/release/lofigirl* ${{ github.workspace }}/bin
+        docker cp $(docker create lofigirl:latest):/app/bin/. ${{ github.workspace }}/bin
     - name: Make Zip(s)
       run: 
         7z a -tzip ${{ github.workspace }}/bin/lofigirl.zip ${{ github.workspace }}/bin/lofigirl
@@ -77,7 +77,7 @@ jobs:
         asset_name: lofigirl-server-linux.zip
         asset_content_type: application/octet-stream
   build_client:
-    name: Create cross-platform release build and upload binaries
+    name: Create cross-platform client release build and upload binaries
     needs: once
     runs-on: ${{ matrix.os }}
     strategy:
@@ -90,7 +90,7 @@ jobs:
       run: cargo build --release -p lofigirl --features notify
     - name: Make Zip
       run: 
-        7z a -tzip ${{ github.workspace }}/target/release/lofigirl-with-notif${{ matrix.os }}.zip ${{ github.workspace }}/target/release/lofigirl* "-x!*.d" "-x!*.pdb"
+        7z a -tzip ${{ github.workspace }}/target/release/lofigirl-with-notifications-${{ matrix.os }}.zip ${{ github.workspace }}/target/release/lofigirl* "-x!*.d" "-x!*.pdb"
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
@@ -98,7 +98,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/target/release/lofigirl-with-notif-${{ matrix.os }}.zip
-        asset_name: lofigirl-with-notif-${{ matrix.os }}.zip
+        asset_path: ${{ github.workspace }}/target/release/lofigirl-with-notifications-${{ matrix.os }}.zip
+        asset_name: lofigirl-with-notifications-${{ matrix.os }}.zip
         asset_content_type: application/octet-stream
     
