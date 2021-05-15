@@ -45,7 +45,7 @@ jobs:
         mkdir -p ${{ github.workspace }}/bin
         docker cp $(docker create lofigirl:latest):/app/bin/. ${{ github.workspace }}/bin
     - name: Make Zip(s)
-      run: 
+      run: |
         7z a -tzip ${{ github.workspace }}/bin/lofigirl.zip ${{ github.workspace }}/bin/lofigirl
         7z a -tzip ${{ github.workspace }}/bin/lofigirl_standalone.zip ${{ github.workspace }}/bin/lofigirl_standalone
         7z a -tzip ${{ github.workspace }}/bin/lofigirl_server.zip ${{ github.workspace }}/bin/lofigirl_server
