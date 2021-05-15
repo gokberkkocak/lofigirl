@@ -10,3 +10,6 @@ token = "token"
 [video]
 link = "https::///www.youtube.com/something"
 second_link = "https::///www.youtube.com/something"
+
+[server]
+link = "http://127.0.0.1:8080"
