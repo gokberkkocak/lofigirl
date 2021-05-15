@@ -10,12 +10,12 @@ use structopt::StructOpt;
 use worker::Worker;
 
 #[cfg(not(feature = "standalone"))]
-const APP_NAME: &'static str = "lofigirl";
+const APP_NAME: &str = "lofigirl";
 
 #[cfg(feature = "standalone")]
-const APP_NAME: &'static str = "lofigirl_standalone";
+const APP_NAME: &str = "lofigirl_standalone";
 
-/// Now written in Rust
+/// Scrobble the tracks you listen on lofigirl streams.
 #[derive(StructOpt, Debug)]
 #[structopt(name = APP_NAME)]
 struct Opt {

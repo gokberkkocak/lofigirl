@@ -1,2 +1,2 @@
-pub mod image;
 mod capture;
+pub mod image;

@@ -1,9 +1,10 @@
 use lofigirl_shared::{config::ConfigError, track::Track};
+#[cfg(not(feature = "standalone"))]
+use lofigirl_shared::{CHILL_API_END_POINT, SLEEP_API_END_POINT};
 #[cfg(feature = "standalone")]
 use lofigirl_sys::image::ImageProcessor;
 #[cfg(feature = "standalone")]
 use url::Url;
-
 use crate::{config::Config, listener::Listener};
 use anyhow::Result;
 #[cfg(not(feature = "standalone"))]
@@ -57,7 +58,11 @@ impl Worker {
                 .ok_or(ConfigError::EmptyServerConfig)?
                 .link
                 .as_str(),
-            if second { "chill" } else { "sleep" }
+            if second {
+                &SLEEP_API_END_POINT
+            } else {
+                &CHILL_API_END_POINT
+            }
         );
         Ok(Worker {
             listener,

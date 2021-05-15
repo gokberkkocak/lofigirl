@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use thiserror::Error;
 
-
 #[derive(Debug, Deserialize)]
 pub struct LastFMConfig {
     pub api_key: String,
@@ -23,7 +22,6 @@ pub struct VideoConfig {
 pub struct ServerConfig {
     pub link: String,
 }
-
 
 #[derive(Error, Debug)]
 pub enum ConfigError {

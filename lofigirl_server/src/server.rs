@@ -1,6 +1,6 @@
-use actix_web::{App, HttpServer, web};
+use actix_web::{web, App, HttpServer};
 use actix_web::{HttpResponse, Result};
-use lofigirl_shared::track::Track;
+use lofigirl_shared::{track::Track, CHILL_API_END_POINT, SLEEP_API_END_POINT};
 use parking_lot::Mutex;
 use serde::Serialize;
 use thiserror::Error;
@@ -22,10 +22,9 @@ impl AppState {
 async fn get_main(data: web::Data<AppState>) -> Result<HttpResponse> {
     let lock = data.main_track.lock();
     let track = lock.clone();
-    if let Some(track) = track{       
+    if let Some(track) = track {
         Ok(HttpResponse::Ok().json(track))
-    }
-    else {
+    } else {
         Ok(HttpResponse::NotFound().json(WebTrackError::CannotGiveTrack))
     }
 }
@@ -33,10 +32,9 @@ async fn get_main(data: web::Data<AppState>) -> Result<HttpResponse> {
 async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
     let lock = data.second_track.lock();
     let track = lock.clone();
-    if let Some(track) = track{       
+    if let Some(track) = track {
         Ok(HttpResponse::Ok().json(track))
-    }
-    else {
+    } else {
         Ok(HttpResponse::NotFound().json(WebTrackError::CannotGiveTrack))
     }
 }
@@ -44,23 +42,27 @@ async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
 pub struct LofiServer;
 
 impl LofiServer {
-
-    pub async fn start(data: web::Data<AppState>) -> std::io::Result<()> {
+    pub async fn start(data: web::Data<AppState>, port: u32) -> std::io::Result<()> {
         HttpServer::new(move || {
             // move counter into the closure
             App::new()
                 // Note: using app_data instead of data
                 .app_data(data.clone()) // <- register the created data
-                .route("/chill", web::get().to(get_main))
-                .route("/sleep", web::get().to(get_second))
+                .route(
+                    &format!("/{}", CHILL_API_END_POINT),
+                    web::get().to(get_main),
+                )
+                .route(
+                    &format!("/{}", SLEEP_API_END_POINT),
+                    web::get().to(get_second),
+                )
         })
-        .bind("0.0.0.0:8080")?
-        // .bind("127.0.0.1:8080")?
+        .bind(format!("0.0.0.0:{}", port))?
+        // .bind(format!("127.0.0.1:{}", port))?
         .run()
         .await
     }
 }
-
 
 #[derive(Error, Debug, Serialize)]
 pub enum WebTrackError {

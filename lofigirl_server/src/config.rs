@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use anyhow::Result;
-use serde::Deserialize;
 use lofigirl_shared::config::VideoConfig;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {

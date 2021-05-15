@@ -16,6 +16,9 @@ struct Opt {
     /// Configuration toml file.
     #[structopt(short, long, default_value = "config.toml")]
     config: PathBuf,
+    /// Configuration toml file.
+    #[structopt(short, long, default_value = "8888")]
+    port: u32,
     /// Only provide information for the first given link.
     #[structopt(short, long)]
     only_first: bool,
@@ -32,6 +35,5 @@ async fn main() -> std::io::Result<()> {
     actix_rt::spawn(async move {
         worker.loop_work().await;
     });
-    LofiServer::start(state).await
-
+    LofiServer::start(state, opt.port).await
 }

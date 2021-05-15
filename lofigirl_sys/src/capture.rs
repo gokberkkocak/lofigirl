@@ -1,5 +1,5 @@
-use rustube::VideoFetcher;
 use anyhow::Result;
+use rustube::VideoFetcher;
 use thiserror::Error;
 use url::Url;
 pub struct YoutubeLinkCapture;
