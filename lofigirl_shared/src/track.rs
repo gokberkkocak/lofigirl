@@ -1,9 +1,9 @@
 use std::fmt;
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use strsim::jaro;
 use thiserror::Error;
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Track {
@@ -19,7 +19,6 @@ impl Track {
         Ok(Track { artist, song })
     }
 }
-
 
 impl PartialEq for Track {
     fn eq(&self, other: &Track) -> bool {

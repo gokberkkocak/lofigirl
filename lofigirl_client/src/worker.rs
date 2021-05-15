@@ -1,15 +1,15 @@
+use crate::{config::Config, listener::Listener};
+use anyhow::Result;
 use lofigirl_shared::{config::ConfigError, track::Track};
 #[cfg(not(feature = "standalone"))]
 use lofigirl_shared::{CHILL_API_END_POINT, SLEEP_API_END_POINT};
 #[cfg(feature = "standalone")]
 use lofigirl_sys::image::ImageProcessor;
-#[cfg(feature = "standalone")]
-use url::Url;
-use crate::{config::Config, listener::Listener};
-use anyhow::Result;
 #[cfg(not(feature = "standalone"))]
 use reqwest::Client;
 use thiserror::Error;
+#[cfg(feature = "standalone")]
+use url::Url;
 
 pub struct Worker {
     listener: Listener,

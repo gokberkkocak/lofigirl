@@ -9,7 +9,7 @@ use worker::ServerWorker;
 
 use crate::config::ServerConfig;
 
-/// Scrooble the tracks you listen on lofigirl streams.
+/// Scrobble the tracks you listen on lofigirl streams.
 #[derive(StructOpt, Debug)]
 #[structopt(name = "lofigirl_server")]
 struct Opt {
