@@ -41,3 +41,35 @@ OPTIONS:
     -c, --config <config>    Configuration toml file [default: config.toml]
     -p, --port <port>        Configuration toml file [default: 8888]
 ```
+
+## Install Lofigirl-Server as a service
+
+Here's an example configuration which uses rootless podman with the docker container.
+
+Pull from docker.io.
+
+```
+podman pull docker.io/gokberkkocak/lofigirl
+```
+
+Run first time to give a container name. 
+
+```
+podman run --name lofigirl -p 8888:8888 -v ~/config.toml:/config.toml gokberkkocak/lofigirl:latest
+```
+
+Service file.
+
+```
+[Unit]
+Description=Lofigirl
+After=network.target
+
+[Service]
+ExecStart=podman start -a lofigirl
+ExecStop=podman stop -t 2 lofigirl
+User=podman
+
+[Install]
+WantedBy=multi-user.target
+```

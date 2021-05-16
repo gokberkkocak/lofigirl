@@ -93,14 +93,13 @@ Docker images includes all binaries (without notification support).
 docker pull gokberkkocak/lofigirl
 ```
 
-Use ```-v``` to pass your configuration file to the container.
-
-```
-docker run -d -v /path/to/your/config.toml:/config.toml gokberkkocak/lofigirl:latest 
-```
-
 The default entry point of the Docker image is the server module.
 
+Use ```-v``` to pass your configuration file to the container and ```-p``` for port arrangement.
+
+```
+docker run -d -v /path/to/your/config.toml:/config.toml -p 8888:8888 gokberkkocak/lofigirl:latest 
+```
 To use with other modules, use ``--entrypoint`` flag.
 
 ```
