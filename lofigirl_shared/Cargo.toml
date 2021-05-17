@@ -8,8 +8,13 @@ edition = "2018"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.5", features = ["fs"] }
+rustfm-scrobble = "1.1"
+listenbrainz = "0.3"
 anyhow = "1.0"
 thiserror = "1.0"
 strsim = "0.10"
 once_cell = "1.7"
+notify-rust = { version = "4.5", optional = true }
+
+[features]
+notify = ["notify-rust"]

@@ -1,5 +1,4 @@
 mod config;
-mod listener;
 mod worker;
 
 use anyhow::Result;

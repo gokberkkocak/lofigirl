@@ -1,5 +1,6 @@
-use crate::{config::Config, listener::Listener};
+use crate::config::Config;
 use anyhow::Result;
+use lofigirl_shared::listener::Listener;
 use lofigirl_shared::{config::ConfigError, track::Track};
 #[cfg(not(feature = "standalone"))]
 use lofigirl_shared::{CHILL_API_END_POINT, SLEEP_API_END_POINT};
@@ -24,7 +25,13 @@ pub struct Worker {
 
 impl Worker {
     pub fn new(config: &Config, second: bool) -> Result<Worker> {
-        let listener = Listener::new(&config)?;
+        let mut listener = Listener::new();
+        if let Some(lastfm) = &config.lastfm {
+            listener.set_lastfm_listener(lastfm)?;
+        }
+        if let Some(listenbrainz) = &config.listenbrainz {
+            listener.set_listenbrainz_listener(listenbrainz)?;
+        }
         #[cfg(feature = "standalone")]
         let video_url = if second {
             Url::parse(

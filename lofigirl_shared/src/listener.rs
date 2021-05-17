@@ -1,43 +1,39 @@
 use std::fmt;
 
+use crate::{
+    config::{LastFMConfig, ListenBrainzConfig},
+    track::Track,
+};
 use anyhow::Result;
 use listenbrainz::ListenBrainz;
-use lofigirl_shared::track::Track;
 use rustfm_scrobble::{Scrobble, Scrobbler};
 
 #[cfg(feature = "notify")]
 use notify_rust::Notification;
 #[cfg(feature = "notify")]
 use notify_rust::Timeout;
-
-use crate::config::Config;
-
+#[derive(Default)]
 pub struct Listener {
     lastfm_listener: Option<Scrobbler>,
     listenbrainz_listener: Option<ListenBrainz>,
 }
 
 impl Listener {
-    pub fn new(config: &Config) -> Result<Listener> {
-        let mut listener = Listener {
-            lastfm_listener: None,
-            listenbrainz_listener: None,
-        };
-        listener.set_listeners(config)?;
-        Ok(listener)
+    pub fn new() -> Listener {
+        Default::default()
     }
 
-    fn set_listeners(&mut self, config: &Config) -> Result<()> {
-        if let Some(lastfm) = &config.lastfm {
-            let mut lastfm_listener = Scrobbler::new(&lastfm.api_key, &lastfm.api_secret);
-            lastfm_listener.authenticate_with_password(&lastfm.username, &lastfm.password)?;
-            self.lastfm_listener = Some(lastfm_listener);
-        }
-        if let Some(listenbrainz) = &config.listenbrainz {
-            let mut listenbrainz_listener = ListenBrainz::new();
-            listenbrainz_listener.authenticate(&listenbrainz.token)?;
-            self.listenbrainz_listener = Some(listenbrainz_listener);
-        }
+    pub fn set_lastfm_listener(&mut self, lastfm: &LastFMConfig) -> Result<()> {
+        let mut lastfm_listener = Scrobbler::new(&lastfm.api_key, &lastfm.api_secret);
+        lastfm_listener.authenticate_with_password(&lastfm.username, &lastfm.password)?;
+        self.lastfm_listener = Some(lastfm_listener);
+        Ok(())
+    }
+
+    pub fn set_listenbrainz_listener(&mut self, listenbrainz: &ListenBrainzConfig) -> Result<()> {
+        let mut listenbrainz_listener = ListenBrainz::new();
+        listenbrainz_listener.authenticate(&listenbrainz.token)?;
+        self.listenbrainz_listener = Some(listenbrainz_listener);
         Ok(())
     }
 
