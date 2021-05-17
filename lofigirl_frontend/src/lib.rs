@@ -37,6 +37,7 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
         server_form: Default::default(),
         listener,
         counter: 0,
+        server_url: Default::default(),
     }
 }
 
@@ -51,6 +52,7 @@ struct Model {
     listenbrainz_form: ListenBrainzForm,
     server_form: ServerForm,
     listener: Listener,
+    server_url: Option<String>,
     counter: i32,
 }
 
@@ -93,6 +95,7 @@ enum Msg {
     LastFMFormSubmitted,
     ListenBrainzFormSubmitted,
     ServerFormSubmitted,
+    UpdatePlayingStatus,
 }
 
 // `update` describes how to handle each `Msg`.
@@ -113,8 +116,17 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             };
             model.listener.set_lastfm_listener(&lastfm_config).unwrap();
         }
-        Msg::ListenBrainzFormSubmitted => {}
-        Msg::ServerFormSubmitted => {}
+        Msg::ListenBrainzFormSubmitted => {
+            let form = &model.listenbrainz_form;
+            let token = form.token.get().unwrap().value();
+            model.listener.set_listenbrainz_listener(&ListenBrainzConfig{token}).unwrap();
+        }
+        Msg::ServerFormSubmitted => {
+            let form = &model.server_form;
+            let server_url = form.server.get().unwrap().value();
+            model.listener.set_listenbrainz_listener(&ListenBrainzConfig{token}).unwrap();
+        }
+        Msg::UpdatePlayingStatus => {}
     }
 }
 
