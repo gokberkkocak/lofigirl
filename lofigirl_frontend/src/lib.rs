@@ -4,10 +4,7 @@
 #![allow(clippy::wildcard_imports)]
 
 mod storage;
-
-use lofigirl_shared::{
-    config::{LastFMConfig, ListenBrainzConfig},
-};
+use lofigirl_shared::config::{LastFMConfig, ListenBrainzConfig};
 use seed::prelude::web_sys::HtmlInputElement;
 use seed::prelude::*;
 use seed::*;
@@ -18,13 +15,17 @@ use seed::*;
 
 // `init` describes what should happen when your app started.
 fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
-
+    let lastfm = storage::get_lastfm_config();
+    let listenbrainz = storage::get_listenbrainz_token();
+    let server = storage::get_server_url();
     Model {
         lastfm_form: Default::default(),
         listenbrainz_form: Default::default(),
+        lastfm_config: lastfm,
+        listenbrainz_config: listenbrainz,
         server_form: Default::default(),
-        counter: 0,
-        server_url: Default::default(),
+        server_url: server,
+        page: Page::Root,
     }
 }
 
@@ -33,22 +34,14 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
 // ------ ------
 
 // `Model` describes our app state.
-#[derive(Default)]
 struct Model {
     lastfm_form: LastFMForm,
     listenbrainz_form: ListenBrainzForm,
+    lastfm_config: Option<LastFMConfig>,
+    listenbrainz_config: Option<ListenBrainzConfig>,
     server_form: ServerForm,
     server_url: Option<String>,
-    counter: i32,
-}
-
-impl Model {
-    fn set_lastfm_config(&mut self, lastfm: &LastFMConfig) {
-        storage::set_lastfm_config(lastfm);
-    }
-    fn set_listenbrainz_token(&mut self, token: &str) {
-        storage::set_listenbrainz_token(token);
-    }
+    page: Page,
 }
 
 #[derive(Debug, Default)]
@@ -77,17 +70,24 @@ struct ServerForm {
 #[derive(Copy, Clone)]
 // `Msg` describes the different events you can modify state with.
 enum Msg {
-    Increment,
     LastFMFormSubmitted,
     ListenBrainzFormSubmitted,
     ServerFormSubmitted,
-    UpdatePlayingStatus,
+    CleanLastFM,
+    CleanListenbrainz,
+    CleanServer,
+    UpdatePlayingStatus(Stream),
+    UrlChanged(Page),
+}
+#[derive(Debug, Clone, Copy)]
+enum Stream {
+    Chill,
+    Sleep,
 }
 
 // `update` describes how to handle each `Msg`.
-fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+fn update(msg: Msg, model: &mut Model, _orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::Increment => model.counter += 1,
         Msg::LastFMFormSubmitted => {
             let form = &model.lastfm_form;
             let username = form.username_input.get().unwrap().value();
@@ -100,16 +100,44 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 username,
                 password,
             };
-            // model.listener.set_lastfm_listener(&lastfm_config).unwrap();
+            storage::set_lastfm_config(&lastfm_config);
+            model.lastfm_config = Some(lastfm_config);
         }
         Msg::ListenBrainzFormSubmitted => {
             let form = &model.listenbrainz_form;
             let token = form.token.get().unwrap().value();
-            // model.listener.set_listenbrainz_listener(&ListenBrainzConfig{token}).unwrap();
+            storage::set_listenbrainz_token(&token);
+            model.listenbrainz_config = Some(ListenBrainzConfig { token });
         }
-        Msg::ServerFormSubmitted => {}
-        Msg::UpdatePlayingStatus => {}
+        Msg::ServerFormSubmitted => {
+            let form = &model.server_form;
+            let url = form.server.get().unwrap().value();
+            storage::set_server_url(&url);
+            model.server_url = Some(url);
+        }
+        Msg::UpdatePlayingStatus(_s) => {}
+        Msg::UrlChanged(p) => {
+            model.page = p;
+        }
+        Msg::CleanLastFM => {
+            model.lastfm_config = None;
+            storage::remove_lastfm_config();
+        }
+        Msg::CleanListenbrainz => {
+            model.listenbrainz_config = None;
+            storage::remove_listenbrainz_token();
+        }
+        Msg::CleanServer => {
+            model.server_url = None;
+            storage::remove_server_url();
+        }
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Page {
+    Root,
+    Config,
 }
 
 // ------ ------
@@ -117,12 +145,121 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 
 // `view` describes what to display.
-fn view(model: &Model) -> Node<Msg> {
-    div![
-        "This is a counter: ",
-        C!["counter"],
-        button![model.counter, ev(Ev::Click, |_| Msg::Increment),],
-    ]
+fn view(model: &Model) -> Vec<Node<Msg>> {
+    let top = div![div![
+        // "ROOT",
+        button!["ROOT", ev(Ev::Click, |_| Msg::UrlChanged(Page::Root)),],
+        button!["Config", ev(Ev::Click, |_| Msg::UrlChanged(Page::Config)),]
+    ],];
+
+    let body = match model.page {
+        Page::Root => {
+            div![
+                div![button![
+                    "Start scrobbling - CHILL",
+                    ev(Ev::Click, |_| Msg::UpdatePlayingStatus(Stream::Chill)),
+                ]],
+                div![button![
+                    "Start scrobbling - SLEEP",
+                    ev(Ev::Click, |_| Msg::UpdatePlayingStatus(Stream::Sleep)),
+                ]]
+            ]
+        }
+        Page::Config => {
+            let lastfm = match &model.lastfm_config {
+                Some(l) => {
+                    div![
+                        format!("LASTFM - Logged in as {}", l.username),
+                        button!["CLEAN", ev(Ev::Click, |_| Msg::CleanLastFM),],
+                    ]
+                }
+                None => {
+                    div![
+                        div![input![
+                            el_ref(&model.lastfm_form.username_input),
+                            attrs! {
+                                At::Type => "text",
+                                At::Placeholder => "Username",
+                            },
+                        ]],
+                        div![input![
+                            el_ref(&model.lastfm_form.password_input),
+                            attrs! {
+                                At::Type => "password",
+                                At::Placeholder => "Password"
+                            },
+                        ]],
+                        div![input![
+                            el_ref(&model.lastfm_form.api_key_input),
+                            attrs! {
+                                At::Type => "password",
+                                At::Placeholder => "api_key"
+                            },
+                        ]],
+                        div![input![
+                            el_ref(&model.lastfm_form.api_secret_input),
+                            attrs! {
+                                At::Type => "password",
+                                At::Placeholder => "api_secret"
+                            },
+                        ]],
+                        div![button![
+                            "Submit",
+                            ev(Ev::Click, |_| Msg::LastFMFormSubmitted),
+                        ]]
+                    ]
+                }
+            };
+            let listenbrainz = match &model.listenbrainz_config {
+                Some(_) => {
+                    div![
+                        "LISTENBRAINZ - A token is registered",
+                        button!["CLEAN", ev(Ev::Click, |_| Msg::CleanListenbrainz),],
+                    ]
+                }
+                None => {
+                    div![
+                        div![input![
+                            el_ref(&model.listenbrainz_form.token),
+                            attrs! {
+                                At::Type => "password",
+                                At::Placeholder => "Token",
+                            },
+                        ]],
+                        div![button![
+                            "Submit",
+                            ev(Ev::Click, |_| Msg::ListenBrainzFormSubmitted),
+                        ]]
+                    ]
+                }
+            };
+            let server = match &model.server_url {
+                Some(s) => {
+                    div![
+                        format!("SERVER - Using {}", s),
+                        button!["CLEAN", ev(Ev::Click, |_| Msg::CleanServer),],
+                    ]
+                }
+                None => {
+                    div![
+                        div![input![
+                            el_ref(&model.server_form.server),
+                            attrs! {
+                                At::Type => "text",
+                                At::Placeholder => "url",
+                            },
+                        ]],
+                        div![button![
+                            "Submit",
+                            ev(Ev::Click, |_| Msg::ServerFormSubmitted),
+                        ]]
+                    ]
+                }
+            };
+            div![div![lastfm], div![listenbrainz], div![server]]
+        }
+    };
+    nodes![top, body]
 }
 
 // ------ ------
