@@ -14,8 +14,8 @@ pub struct Track {
 impl Track {
     pub fn from_ocr_text(text: &str) -> Result<Track> {
         let split_text = text.split_once('-').ok_or(TrackError::SplitError)?;
-        let artist = split_text.0.to_owned();
-        let song = split_text.1.to_owned();
+        let artist = split_text.0.trim().to_owned();
+        let song = split_text.1.trim().to_owned();
         Ok(Track { artist, song })
     }
 }

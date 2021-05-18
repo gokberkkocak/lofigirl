@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 lofigirl_sys = { path = "../lofigirl_sys"}
 lofigirl_shared = { path = "../lofigirl_shared"}
+lofigirl_listen = { path = "../lofigirl_listen"}
 serde = { version = "1.0", features = ["derive"] }
 # actix 4 beta usage for tokio 1.x
 actix-web = "=4.0.0-beta.5"
