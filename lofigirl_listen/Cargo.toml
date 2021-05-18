@@ -1,0 +1,14 @@
+[package]
+name = "lofigirl_listen"
+version = "0.1.0"
+authors = ["Gokberk Kocak <gokberkkocak@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lofigirl_shared = {path = "../lofigirl_shared"}
+rustfm-scrobble = "1.1"
+listenbrainz = "0.3"
+anyhow = "1.0"
+thiserror = "1.0"

@@ -1,6 +1,6 @@
 use crate::config::Config;
 use anyhow::Result;
-use lofigirl_shared::listener::Listener;
+use lofigirl_listen::listener::Listener;
 use lofigirl_shared::{config::ConfigError, track::Track};
 #[cfg(not(feature = "standalone"))]
 use lofigirl_shared::{CHILL_API_END_POINT, SLEEP_API_END_POINT};

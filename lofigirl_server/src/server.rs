@@ -39,6 +39,18 @@ async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
     }
 }
 
+struct Info;
+
+async fn send(data: web::Data<AppState>, info: web::Json<Info>) -> Result<HttpResponse> {
+    let lock = data.main_track.lock();
+    let track = lock.clone();
+    if let Some(track) = track {
+        Ok(HttpResponse::Ok().json(track))
+    } else {
+        Ok(HttpResponse::NotFound().json(WebTrackError::CannotGiveTrack))
+    }
+}
+
 pub struct LofiServer;
 
 impl LofiServer {
@@ -49,12 +61,16 @@ impl LofiServer {
                 // Note: using app_data instead of data
                 .app_data(data.clone()) // <- register the created data
                 .route(
-                    &format!("/{}", CHILL_API_END_POINT),
+                    &format!("/track/{}", CHILL_API_END_POINT),
                     web::get().to(get_main),
                 )
                 .route(
-                    &format!("/{}", SLEEP_API_END_POINT),
+                    &format!("/track/{}", SLEEP_API_END_POINT),
                     web::get().to(get_second),
+                )
+                .route(
+                    "/send/",
+                    web::post().to(send),
                 )
         })
         .bind(format!("0.0.0.0:{}", port))?

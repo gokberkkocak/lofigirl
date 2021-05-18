@@ -4,5 +4,6 @@ members = [
     "lofigirl_sys", 
     "lofigirl_shared",
     "lofigirl_server",
-    "lofigirl_frontend"
+    "lofigirl_frontend",
+    "lofigirl_listen"
 ]

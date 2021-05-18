@@ -7,7 +7,6 @@ mod storage;
 
 use lofigirl_shared::{
     config::{LastFMConfig, ListenBrainzConfig},
-    listener::Listener,
 };
 use seed::prelude::web_sys::HtmlInputElement;
 use seed::prelude::*;
@@ -19,23 +18,11 @@ use seed::*;
 
 // `init` describes what should happen when your app started.
 fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
-    let mut listener = Listener::new();
-    let lastfm_config = storage::get_lastfm_config();
-    if let Some(lastfm) = lastfm_config {
-        listener.set_lastfm_listener(&lastfm).unwrap();
-    }
-    let listenbrainz_token = storage::get_listenbrainz_token();
-    if let Some(token) = listenbrainz_token {
-        listener
-            .set_listenbrainz_listener(&ListenBrainzConfig { token })
-            .unwrap();
-    }
 
     Model {
         lastfm_form: Default::default(),
         listenbrainz_form: Default::default(),
         server_form: Default::default(),
-        listener,
         counter: 0,
         server_url: Default::default(),
     }
@@ -51,7 +38,6 @@ struct Model {
     lastfm_form: LastFMForm,
     listenbrainz_form: ListenBrainzForm,
     server_form: ServerForm,
-    listener: Listener,
     server_url: Option<String>,
     counter: i32,
 }
@@ -114,18 +100,14 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 username,
                 password,
             };
-            model.listener.set_lastfm_listener(&lastfm_config).unwrap();
+            // model.listener.set_lastfm_listener(&lastfm_config).unwrap();
         }
         Msg::ListenBrainzFormSubmitted => {
             let form = &model.listenbrainz_form;
             let token = form.token.get().unwrap().value();
-            model.listener.set_listenbrainz_listener(&ListenBrainzConfig{token}).unwrap();
+            // model.listener.set_listenbrainz_listener(&ListenBrainzConfig{token}).unwrap();
         }
-        Msg::ServerFormSubmitted => {
-            let form = &model.server_form;
-            let server_url = form.server.get().unwrap().value();
-            model.listener.set_listenbrainz_listener(&ListenBrainzConfig{token}).unwrap();
-        }
+        Msg::ServerFormSubmitted => {}
         Msg::UpdatePlayingStatus => {}
     }
 }

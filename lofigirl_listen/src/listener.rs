@@ -1,9 +1,9 @@
 use std::fmt;
 
-use crate::{
+use lofigirl_shared::{
     config::{LastFMConfig, ListenBrainzConfig},
-    track::Track,
 };
+use lofigirl_shared::track::Track;
 use anyhow::Result;
 use listenbrainz::ListenBrainz;
 use rustfm_scrobble::{Scrobble, Scrobbler};
