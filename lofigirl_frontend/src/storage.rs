@@ -1,4 +1,4 @@
-use lofigirl_shared::config::{LastFMConfig, ListenBrainzConfig};
+use lofigirl_shared_common::config::{LastFMConfig, ListenBrainzConfig};
 use seed::browser::web_storage::LocalStorage;
 use seed::browser::web_storage::WebStorage;
 use seed::browser::web_storage::WebStorageError;

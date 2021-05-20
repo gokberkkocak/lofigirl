@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use lofigirl_shared::config::VideoConfig;
+use lofigirl_shared_common::config::VideoConfig;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

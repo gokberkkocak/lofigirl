@@ -1,9 +1,9 @@
 use std::fmt;
 
-use lofigirl_shared::{
+use lofigirl_shared_common::{
     config::{LastFMConfig, ListenBrainzConfig},
 };
-use lofigirl_shared::track::Track;
+use lofigirl_shared_common::track::Track;
 use anyhow::Result;
 use listenbrainz::ListenBrainz;
 use rustfm_scrobble::{Scrobble, Scrobbler};

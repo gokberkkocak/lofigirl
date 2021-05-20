@@ -1,9 +1,9 @@
 use crate::config::Config;
 use anyhow::Result;
-use lofigirl_listen::listener::Listener;
-use lofigirl_shared::{config::ConfigError, track::Track};
+use lofigirl_shared_listen::listener::Listener;
+use lofigirl_shared_common::{config::ConfigError, track::Track};
 #[cfg(not(feature = "standalone"))]
-use lofigirl_shared::{CHILL_API_END_POINT, SLEEP_API_END_POINT};
+use lofigirl_shared_common::{CHILL_API_END_POINT, SLEEP_API_END_POINT};
 #[cfg(feature = "standalone")]
 use lofigirl_sys::image::ImageProcessor;
 #[cfg(not(feature = "standalone"))]

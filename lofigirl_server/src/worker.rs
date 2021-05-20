@@ -1,7 +1,7 @@
 use crate::{config::ServerConfig, server::AppState};
 use actix_web::web;
 use anyhow::Result;
-use lofigirl_shared::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
+use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use lofigirl_sys::image::ImageProcessor;
 use thiserror::Error;
 use url::Url;

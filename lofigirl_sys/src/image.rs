@@ -9,7 +9,7 @@ use url::Url;
 
 use crate::capture::YoutubeLinkCapture;
 
-use lofigirl_shared::track::Track;
+use lofigirl_shared_common::track::Track;
 
 const DPI: i32 = 70;
 

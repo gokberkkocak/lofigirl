@@ -4,15 +4,15 @@
 #![allow(clippy::wildcard_imports)]
 
 mod storage;
-use lofigirl_shared::{
-    api::SendInfo,
+mod view;
+use lofigirl_shared_common::{
+    api::{Action, SendInfo},
     config::{LastFMConfig, ListenBrainzConfig},
     track::Track,
     REGULAR_INTERVAL,
 };
 use seed::prelude::web_sys::HtmlInputElement;
 use seed::prelude::*;
-use seed::*;
 
 // ------ ------
 //     Init
@@ -81,11 +81,11 @@ enum Msg {
     CleanLastFM,
     CleanListenbrainz,
     CleanServer,
-    UpdatePlayingStatus(Stream),
+    UpdatePlayingStatus(LofiStream, i32),
     UrlChanged(Page),
 }
 #[derive(Debug, Clone, Copy)]
-enum Stream {
+enum LofiStream {
     Chill,
     Sleep,
 }
@@ -120,15 +120,24 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             storage::set_server_url(&url);
             model.server_url = Some(url);
         }
-        Msg::UpdatePlayingStatus(s) => {
+        Msg::UpdatePlayingStatus(s, mut count) => {
             // do request
             let l = model.lastfm_config.clone();
             let ls = model.listenbrainz_config.clone();
             let server = model.server_url.clone();
             orders.perform_cmd(async move {
-                send_info(l, ls, server.unwrap(), s).await.unwrap();
+                if count == 1 {
+                    send_info(l, ls, server.unwrap(), s, Action::PlayingNow)
+                        .await
+                        .unwrap();
+                } else if count == 5 {
+                    send_info(l, ls, server.unwrap(), s, Action::Listened)
+                        .await
+                        .unwrap();
+                    count = 0;
+                }
                 std::thread::sleep(*REGULAR_INTERVAL);
-                Msg::UpdatePlayingStatus(s)
+                Msg::UpdatePlayingStatus(s, count + 1)
             });
         }
         Msg::UrlChanged(p) => {
@@ -153,15 +162,15 @@ async fn send_info(
     l: Option<LastFMConfig>,
     ls: Option<ListenBrainzConfig>,
     server: String,
-    s: Stream,
+    s: LofiStream,
+    action: Action,
 ) -> fetch::Result<()> {
-    let base = server;
     let url = format!(
         "{}/{}",
-        base,
+        server,
         match s {
-            Stream::Chill => "chill",
-            Stream::Sleep => "sleep",
+            LofiStream::Chill => "chill",
+            LofiStream::Sleep => "sleep",
         }
     );
     let track: Track = Request::new(url)
@@ -171,12 +180,12 @@ async fn send_info(
         .check_status()?
         .json()
         .await?;
-    Request::new(format!("{}/{}", base, "send"))
+    Request::new(format!("{}/{}", server, "send"))
         .method(Method::Post)
         .json(&SendInfo {
             lastfm: l,
             listenbrainz: ls,
-            action: lofigirl_shared::api::Action::PlayingNow,
+            action,
             track,
         })?
         .fetch()
@@ -194,128 +203,6 @@ pub enum Page {
 }
 
 // ------ ------
-//     View
-// ------ ------
-
-// `view` describes what to display.
-fn view(model: &Model) -> Vec<Node<Msg>> {
-    let top = div![div![
-        // "ROOT",
-        button!["ROOT", ev(Ev::Click, |_| Msg::UrlChanged(Page::Root)),],
-        button!["Config", ev(Ev::Click, |_| Msg::UrlChanged(Page::Config)),]
-    ],];
-
-    let body = match model.page {
-        Page::Root => {
-            div![
-                div![button![
-                    "Start scrobbling - CHILL",
-                    ev(Ev::Click, |_| Msg::UpdatePlayingStatus(Stream::Chill)),
-                ]],
-                div![button![
-                    "Start scrobbling - SLEEP",
-                    ev(Ev::Click, |_| Msg::UpdatePlayingStatus(Stream::Sleep)),
-                ]]
-            ]
-        }
-        Page::Config => {
-            let lastfm = match &model.lastfm_config {
-                Some(l) => {
-                    div![
-                        format!("LASTFM - Logged in as {}", l.username),
-                        button!["CLEAN", ev(Ev::Click, |_| Msg::CleanLastFM),],
-                    ]
-                }
-                None => {
-                    div![
-                        div![input![
-                            el_ref(&model.lastfm_form.username_input),
-                            attrs! {
-                                At::Type => "text",
-                                At::Placeholder => "Username",
-                            },
-                        ]],
-                        div![input![
-                            el_ref(&model.lastfm_form.password_input),
-                            attrs! {
-                                At::Type => "password",
-                                At::Placeholder => "Password"
-                            },
-                        ]],
-                        div![input![
-                            el_ref(&model.lastfm_form.api_key_input),
-                            attrs! {
-                                At::Type => "password",
-                                At::Placeholder => "api_key"
-                            },
-                        ]],
-                        div![input![
-                            el_ref(&model.lastfm_form.api_secret_input),
-                            attrs! {
-                                At::Type => "password",
-                                At::Placeholder => "api_secret"
-                            },
-                        ]],
-                        div![button![
-                            "Submit",
-                            ev(Ev::Click, |_| Msg::LastFMFormSubmitted),
-                        ]]
-                    ]
-                }
-            };
-            let listenbrainz = match &model.listenbrainz_config {
-                Some(_) => {
-                    div![
-                        "LISTENBRAINZ - A token is registered",
-                        button!["CLEAN", ev(Ev::Click, |_| Msg::CleanListenbrainz),],
-                    ]
-                }
-                None => {
-                    div![
-                        div![input![
-                            el_ref(&model.listenbrainz_form.token),
-                            attrs! {
-                                At::Type => "password",
-                                At::Placeholder => "Token",
-                            },
-                        ]],
-                        div![button![
-                            "Submit",
-                            ev(Ev::Click, |_| Msg::ListenBrainzFormSubmitted),
-                        ]]
-                    ]
-                }
-            };
-            let server = match &model.server_url {
-                Some(s) => {
-                    div![
-                        format!("SERVER - Using {}", s),
-                        button!["CLEAN", ev(Ev::Click, |_| Msg::CleanServer),],
-                    ]
-                }
-                None => {
-                    div![
-                        div![input![
-                            el_ref(&model.server_form.server),
-                            attrs! {
-                                At::Type => "text",
-                                At::Placeholder => "url",
-                            },
-                        ]],
-                        div![button![
-                            "Submit",
-                            ev(Ev::Click, |_| Msg::ServerFormSubmitted),
-                        ]]
-                    ]
-                }
-            };
-            div![div![lastfm], div![listenbrainz], div![server]]
-        }
-    };
-    nodes![top, body]
-}
-
-// ------ ------
 //     Start
 // ------ ------
 
@@ -323,5 +210,5 @@ fn view(model: &Model) -> Vec<Node<Msg>> {
 #[wasm_bindgen(start)]
 pub fn start() {
     // Mount the `app` to the element with the `id` "app".
-    App::start("app", init, update, view);
+    App::start("app", init, update, view::view);
 }

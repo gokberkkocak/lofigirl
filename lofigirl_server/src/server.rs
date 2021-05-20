@@ -1,9 +1,9 @@
 use actix_http::http::StatusCode;
 use actix_web::{web, App, HttpServer};
 use actix_web::{HttpResponse, Result};
-use lofigirl_listen::listener::Listener;
-use lofigirl_shared::api::SendInfo;
-use lofigirl_shared::{track::Track, CHILL_API_END_POINT, SLEEP_API_END_POINT};
+use lofigirl_shared_listen::listener::Listener;
+use lofigirl_shared_common::api::SendInfo;
+use lofigirl_shared_common::{track::Track, CHILL_API_END_POINT, SLEEP_API_END_POINT};
 use parking_lot::Mutex;
 use serde::Serialize;
 use thiserror::Error;
@@ -58,12 +58,12 @@ async fn send(_data: web::Data<AppState>, info: web::Json<SendInfo>) -> Result<H
             })?;
     }
     match info.action {
-        lofigirl_shared::api::Action::PlayingNow => {
+        lofigirl_shared_common::api::Action::PlayingNow => {
             listener.send_now_playing(&info.track).map_err(|e| {
                 actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR)
             })?;
         }
-        lofigirl_shared::api::Action::Listened => {
+        lofigirl_shared_common::api::Action::Listened => {
             listener.send_listen(&info.track).map_err(|e| {
                 actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR)
             })?;

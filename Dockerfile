@@ -16,21 +16,21 @@ RUN cargo build --release --features standalone
 
 RUN mkdir -p /app/bin
 
-RUN mv ./target/release/lofigirl /app/bin/lofigirl_standalone
+RUN mv ./target/release/lofigirl_client /app/bin/lofigirl_client_standalone
 
 RUN  cargo build --release
 
-RUN mv ./target/release/lofigirl /app/bin/
+RUN mv ./target/release/lofigirl_client /app/bin/
 
 RUN mv ./target/release/lofigirl_server /app/bin/
 
 FROM archlinux as runner
 
-COPY --from=builder /app/bin/lofigirl /usr/bin/
+COPY --from=builder /app/bin/lofigirl_client /usr/bin/
 
 COPY --from=builder /app/bin/lofigirl_server /usr/bin/
 
-COPY --from=builder /app/bin/lofigirl_standalone /usr/bin/
+COPY --from=builder /app/bin/lofigirl_client_standalone /usr/bin/
 
 RUN pacman-key --init
 
