@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LastFMConfig {
     pub api_key: String,
     pub api_secret: String,
     pub username: String,
     pub password: String,
 }
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ListenBrainzConfig {
     pub token: String,
 }

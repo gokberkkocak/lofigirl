@@ -4,7 +4,12 @@
 #![allow(clippy::wildcard_imports)]
 
 mod storage;
-use lofigirl_shared::config::{LastFMConfig, ListenBrainzConfig};
+use lofigirl_shared::{
+    api::SendInfo,
+    config::{LastFMConfig, ListenBrainzConfig},
+    track::Track,
+    REGULAR_INTERVAL,
+};
 use seed::prelude::web_sys::HtmlInputElement;
 use seed::prelude::*;
 use seed::*;
@@ -86,7 +91,7 @@ enum Stream {
 }
 
 // `update` describes how to handle each `Msg`.
-fn update(msg: Msg, model: &mut Model, _orders: &mut impl Orders<Msg>) {
+fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::LastFMFormSubmitted => {
             let form = &model.lastfm_form;
@@ -115,7 +120,17 @@ fn update(msg: Msg, model: &mut Model, _orders: &mut impl Orders<Msg>) {
             storage::set_server_url(&url);
             model.server_url = Some(url);
         }
-        Msg::UpdatePlayingStatus(_s) => {}
+        Msg::UpdatePlayingStatus(s) => {
+            // do request
+            let l = model.lastfm_config.clone();
+            let ls = model.listenbrainz_config.clone();
+            let server = model.server_url.clone();
+            orders.perform_cmd(async move {
+                send_info(l, ls, server.unwrap(), s).await.unwrap();
+                std::thread::sleep(*REGULAR_INTERVAL);
+                Msg::UpdatePlayingStatus(s)
+            });
+        }
         Msg::UrlChanged(p) => {
             model.page = p;
         }
@@ -132,6 +147,44 @@ fn update(msg: Msg, model: &mut Model, _orders: &mut impl Orders<Msg>) {
             storage::remove_server_url();
         }
     }
+}
+
+async fn send_info(
+    l: Option<LastFMConfig>,
+    ls: Option<ListenBrainzConfig>,
+    server: String,
+    s: Stream,
+) -> fetch::Result<()> {
+    let base = server;
+    let url = format!(
+        "{}/{}",
+        base,
+        match s {
+            Stream::Chill => "chill",
+            Stream::Sleep => "sleep",
+        }
+    );
+    let track: Track = Request::new(url)
+        .method(Method::Get)
+        .fetch()
+        .await?
+        .check_status()?
+        .json()
+        .await?;
+    Request::new(format!("{}/{}", base, "send"))
+        .method(Method::Post)
+        .json(&SendInfo {
+            lastfm: l,
+            listenbrainz: ls,
+            action: lofigirl_shared::api::Action::PlayingNow,
+            track,
+        })?
+        .fetch()
+        .await?
+        .check_status()?
+        .json()
+        .await?;
+    Ok(())
 }
 
 #[derive(Debug, Copy, Clone)]
