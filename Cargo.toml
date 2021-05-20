@@ -10,5 +10,7 @@ members = [
 
 [profile.release]
 lto = true
+
+[profile.release.package.lofigirl_frontend]
 opt-level = 'z'
 codegen-units = 1
