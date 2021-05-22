@@ -87,7 +87,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Build release version
-      run: cargo build --release -p lofigirl --features notify
+      run: cargo build --release -p lofigirl_client --features notify
     - name: Make Zip
       run: 
         7z a -tzip ${{ github.workspace }}/target/release/lofigirl-with-notifications-${{ matrix.os }}.zip ${{ github.workspace }}/target/release/lofigirl* "-x!*.d" "-x!*.pdb"

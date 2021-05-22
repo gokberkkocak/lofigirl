@@ -21,3 +21,4 @@ url = { version = "2.2", optional = true}
 
 [features]
 standalone = ["lofigirl_sys", "url"]
+notify = ["lofigirl_shared_listen/notify"]
