@@ -13,8 +13,26 @@ use lofigirl_shared_common::{
     track::Track,
     REGULAR_INTERVAL,
 };
+#[cfg(debug_assertions)]
+use seed::log;
+use seed::prelude::web_sys::HtmlInputElement;
 use seed::prelude::*;
-use seed::{log, prelude::web_sys::HtmlInputElement};
+
+// ------ ------
+//     Model
+// ------ ------
+
+// `Model` describes our app state.
+struct Model {
+    lastfm_form: LastFMForm,
+    listenbrainz_form: ListenBrainzForm,
+    lastfm_config: Option<LastFMConfig>,
+    listenbrainz_config: Option<ListenBrainzConfig>,
+    server_form: ServerForm,
+    server_url: Option<String>,
+    page: Page,
+    current_track: Option<Track>,
+}
 
 // ------ ------
 //     Init
@@ -33,22 +51,8 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
         server_form: Default::default(),
         server_url: server,
         page: Page::Root,
+        current_track: Default::default(),
     }
-}
-
-// ------ ------
-//     Model
-// ------ ------
-
-// `Model` describes our app state.
-struct Model {
-    lastfm_form: LastFMForm,
-    listenbrainz_form: ListenBrainzForm,
-    lastfm_config: Option<LastFMConfig>,
-    listenbrainz_config: Option<ListenBrainzConfig>,
-    server_form: ServerForm,
-    server_url: Option<String>,
-    page: Page,
 }
 
 #[derive(Debug, Default)]
@@ -74,7 +78,7 @@ struct ServerForm {
 // ------ ------
 
 // (Remove the line below once any of your `Msg` variants doesn't implement `Copy`.)
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 // `Msg` describes the different events you can modify state with.
 enum Msg {
     LastFMFormSubmitted,
@@ -85,6 +89,8 @@ enum Msg {
     CleanServer,
     UpdatePlayingStatus(LofiStream, i32),
     UrlChanged(Page),
+    SubmitTrack(Track, LofiStream, i32),
+    StopPlaying,
 }
 #[derive(Debug, Clone, Copy)]
 enum LofiStream {
@@ -122,28 +128,29 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             storage::set_server_url(&url);
             model.server_url = Some(url);
         }
-        Msg::UpdatePlayingStatus(s, mut count) => {
+        Msg::UpdatePlayingStatus(s, count) => {
             // do request
-            let l = model.lastfm_config.clone();
-            let ls = model.listenbrainz_config.clone();
-            let server = model.server_url.clone();
-            orders.perform_cmd(async move {
-                log!(count);
-                if count == 1 {
-                    send_info(l, ls, server.unwrap(), s, Action::PlayingNow)
-                        .await
-                        .unwrap();
-                } else if count == 5 {
-                    log!("scrobble");
-                    send_info(l, ls, server.unwrap(), s, Action::Listened)
-                        .await
-                        .unwrap();
-                    count = 0;
+            let server = model.server_url.clone().unwrap();
+            let url = format!(
+                "{}/track/{}",
+                server,
+                match s {
+                    LofiStream::Chill => "chill",
+                    LofiStream::Sleep => "sleep",
                 }
-                cmds::timeout(
-                    REGULAR_INTERVAL.as_millis().try_into().unwrap(),
-                    move || Msg::UpdatePlayingStatus(s, count + 1),
-                ).await
+            );
+            orders.perform_cmd(async move {
+                let track: Track = Request::new(url)
+                    .method(Method::Get)
+                    .fetch()
+                    .await
+                    .unwrap()
+                    .check_status()
+                    .unwrap()
+                    .json()
+                    .await
+                    .unwrap();
+                Msg::SubmitTrack(track, s, count)
             });
         }
         Msg::UrlChanged(p) => {
@@ -161,6 +168,44 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             model.server_url = None;
             storage::remove_server_url();
         }
+        Msg::SubmitTrack(track, s, mut count) => {
+            // update model track
+            let server = model.server_url.clone().unwrap();
+            let l = model.lastfm_config.clone();
+            let ls = model.listenbrainz_config.clone();
+            let current_track = model.current_track.take();
+            if let Some(t) = current_track.filter(|t| *t != track) {
+                if count > 3 {
+                    orders.perform_cmd(async move {
+                        #[cfg(debug_assertions)]
+                        log!("Scrobbled");
+                        send_info(l, ls, server, t, Action::Listened).await.unwrap();
+                    });
+                }
+                count = 0;
+            }
+            model.current_track = Some(track.clone());
+            let server = model.server_url.clone().unwrap();
+            let l = model.lastfm_config.clone();
+            let ls = model.listenbrainz_config.clone();
+            #[cfg(debug_assertions)]
+            log!("Count", count);
+            orders.perform_cmd(async move {
+                if count == 1 {
+                    send_info(l, ls, server, track, Action::PlayingNow)
+                        .await
+                        .unwrap();
+                }
+                cmds::timeout(
+                    REGULAR_INTERVAL.as_millis().try_into().unwrap(),
+                    move || Msg::UpdatePlayingStatus(s, count + 1),
+                )
+                .await
+            });
+        }
+        Msg::StopPlaying => {
+            model.current_track = None;
+        }
     }
 }
 
@@ -168,24 +213,9 @@ async fn send_info(
     l: Option<LastFMConfig>,
     ls: Option<ListenBrainzConfig>,
     server: String,
-    s: LofiStream,
+    track: Track,
     action: Action,
 ) -> fetch::Result<()> {
-    let url = format!(
-        "{}/track/{}",
-        server,
-        match s {
-            LofiStream::Chill => "chill",
-            LofiStream::Sleep => "sleep",
-        }
-    );
-    let track: Track = Request::new(url)
-        .method(Method::Get)
-        .fetch()
-        .await?
-        .check_status()?
-        .json()
-        .await?;
     Request::new(format!("{}/{}", server, "send"))
         .method(Method::Post)
         .json(&SendInfo {
