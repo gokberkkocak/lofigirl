@@ -1,10 +1,9 @@
 mod config;
-mod listener;
 mod worker;
 
 use anyhow::Result;
 use config::Config;
-use lofigirl_shared::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
+use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use std::path::PathBuf;
 use structopt::StructOpt;
 use worker::Worker;

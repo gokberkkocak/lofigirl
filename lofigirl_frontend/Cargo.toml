@@ -1,0 +1,20 @@
+[package]
+version = "0.1.0"
+name = "lofigirl_frontend"
+description = "App Description"
+categories = ["category"]
+readme = "./README.md"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[dependencies]
+seed = "0.8"
+lofigirl_shared_common = { path = "../lofigirl_shared_common"}
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-Os']
