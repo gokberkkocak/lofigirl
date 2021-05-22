@@ -4,14 +4,16 @@ Uses [actix-web](https://actix.rs/) for the web server backend.
 
 ## Compiling
 
+It only compiles on nightly atm.
+
 ```
-cargo +nightly build --release
+cargo build --release
 ```
 
 To compile only the server module in the workspace use ```-p``` flag.
 
 ```
-cargo +nightly build --release -p lofigirl_server
+cargo build --release -p lofigirl_server
 ```
 
 ## Example Config

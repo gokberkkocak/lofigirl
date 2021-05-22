@@ -48,7 +48,7 @@ brew install opencv tesseract leptonica
 One of the crates [rustube](https://lib.rs/crates/rustube) in the project requires nightly compiler so the project only compiles on nightly compiler at the moment.
 
 ```
-cargo +nightly build --release
+cargo build --release
 ```
 
 Check [server](lofigirl_server/README.md) and/or [client](lofigirl_client/README.md) for more information.
