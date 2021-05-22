@@ -5,14 +5,16 @@
 
 mod storage;
 mod view;
+use std::convert::TryInto;
+
 use lofigirl_shared_common::{
     api::{Action, SendInfo},
     config::{LastFMConfig, ListenBrainzConfig},
     track::Track,
     REGULAR_INTERVAL,
 };
-use seed::prelude::web_sys::HtmlInputElement;
 use seed::prelude::*;
+use seed::{log, prelude::web_sys::HtmlInputElement};
 
 // ------ ------
 //     Init
@@ -126,18 +128,22 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             let ls = model.listenbrainz_config.clone();
             let server = model.server_url.clone();
             orders.perform_cmd(async move {
+                log!(count);
                 if count == 1 {
                     send_info(l, ls, server.unwrap(), s, Action::PlayingNow)
                         .await
                         .unwrap();
                 } else if count == 5 {
+                    log!("scrobble");
                     send_info(l, ls, server.unwrap(), s, Action::Listened)
                         .await
                         .unwrap();
                     count = 0;
                 }
-                std::thread::sleep(*REGULAR_INTERVAL);
-                Msg::UpdatePlayingStatus(s, count + 1)
+                cmds::timeout(
+                    REGULAR_INTERVAL.as_millis().try_into().unwrap(),
+                    move || Msg::UpdatePlayingStatus(s, count + 1),
+                ).await
             });
         }
         Msg::UrlChanged(p) => {
@@ -166,7 +172,7 @@ async fn send_info(
     action: Action,
 ) -> fetch::Result<()> {
     let url = format!(
-        "{}/{}",
+        "{}/track/{}",
         server,
         match s {
             LofiStream::Chill => "chill",
@@ -190,9 +196,7 @@ async fn send_info(
         })?
         .fetch()
         .await?
-        .check_status()?
-        .json()
-        .await?;
+        .check_status()?;
     Ok(())
 }
 

@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_http::http::StatusCode;
 use actix_web::{web, App, HttpServer};
 use actix_web::{HttpResponse, Result};
@@ -77,9 +78,10 @@ pub struct LofiServer;
 impl LofiServer {
     pub async fn start(data: web::Data<AppState>, port: u32) -> std::io::Result<()> {
         HttpServer::new(move || {
-            // move counter into the closure
+            // CORS is pretty relaxed, can change it in real production
+            let cors = Cors::permissive();
             App::new()
-                // Note: using app_data instead of data
+                .wrap(cors)
                 .app_data(data.clone()) // <- register the created data
                 .route(
                     &format!("/track/{}", CHILL_API_END_POINT),
