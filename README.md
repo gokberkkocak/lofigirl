@@ -14,11 +14,12 @@ This project uses ```opencv``` library to capture\process images and ```tesserac
 
 This project includes different modules and several features which you can choose according to your preference. The list of binaries which are compiled on releases are
 
-- Lofigirl - Includes Optional multi-os notification system.
+- Lofigirl Client - Includes Optional multi-os notification system.
     - Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to retrieve information from the ```server``` module.
     - Standalone - The standalone version which runs the images processing and ocr by itself and submits the data on a regular interval. Requires all the dependencies to be present in the system.
-- Lofigirl Server - The http server module which does the image processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system.
-
+- Lofigirl Server - The http server module which does the image 
+processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system.
+- Lofigirl Web Client - Compiled to wasm, can even run on a browser. 
 ## Installing all dependencies
 
 ### Arch Linux
@@ -83,7 +84,7 @@ Both LastFM and ListenBrainz are optional. You can use one or both depending how
 
 ## Usage
 
-Check [server](lofigirl_server/README.md) or [client](lofigirl_client/README.md) usage on their sections.
+Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) or [web-client]([client](lofigirl_web_client/README.md)) usage on their sections.
 
 ## Docker
 

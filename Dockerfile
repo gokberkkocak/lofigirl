@@ -12,13 +12,13 @@ RUN pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesserac
 
 RUN rustup toolchain install nightly
 
-RUN cargo build --release --features standalone
+RUN cargo build --release -p lofigirl_client --features standalone
 
 RUN mkdir -p /app/bin
 
 RUN mv ./target/release/lofigirl_client /app/bin/lofigirl_client_standalone
 
-RUN  cargo build --release
+RUN cargo build --release -p lofigirl_client -p lofigirl_server
 
 RUN mv ./target/release/lofigirl_client /app/bin/
 

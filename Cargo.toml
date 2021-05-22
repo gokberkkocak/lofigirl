@@ -1,16 +1,16 @@
 [workspace]
 members = [
     "lofigirl_client", 
-    "lofigirl_frontend",
     "lofigirl_server",
     "lofigirl_shared_common",
     "lofigirl_shared_listen",
     "lofigirl_sys", 
+    "lofigirl_web_client",
 ]
 
 [profile.release]
 lto = true
 
-[profile.release.package.lofigirl_frontend]
+[profile.release.package.lofigirl_web_client]
 opt-level = 'z'
 codegen-units = 1

@@ -1,6 +1,6 @@
 [package]
 version = "0.1.0"
-name = "lofigirl_frontend"
+name = "lofigirl_web_client"
 description = "App Description"
 categories = ["category"]
 readme = "./README.md"

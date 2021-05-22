@@ -54,10 +54,10 @@ Pull from docker.io.
 podman pull docker.io/gokberkkocak/lofigirl
 ```
 
-Run first time to give a container name. 
+Run first time to give a container name and ctrl-c. 
 
 ```
-podman run --name lofigirl -p 8888:8888 -v ~/config.toml:/config.toml gokberkkocak/lofigirl:latest
+podman run --name lofigirl -p 8888:8888 -v /path/to/config.toml:/config.toml gokberkkocak/lofigirl:latest
 ```
 
 Service file.
