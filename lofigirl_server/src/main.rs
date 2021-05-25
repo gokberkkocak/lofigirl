@@ -1,6 +1,7 @@
 mod config;
 mod server;
 mod worker;
+mod session;
 
 use server::LofiServer;
 use std::path::PathBuf;

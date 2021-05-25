@@ -17,6 +17,8 @@ actix-service = "=2.0.0-beta.5"
 actix-http = "=3.0.0-beta.5"
 actix-cors = "0.6.0-beta.1"
 actix-rt = "2.2"
+sqlx = { version = "0.5", features = ["sqlite", "runtime-tokio-native-tls"] }
+uuid = { version = "0.8", features = ["v4"] }
 thiserror = "1.0"
 structopt = "0.3"
 toml = "0.5"
