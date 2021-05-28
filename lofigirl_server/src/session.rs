@@ -1,5 +1,7 @@
 use anyhow::Result;
-use lofigirl_shared_common::config::{ConfigError, LastFMConfig, ListenBrainzConfig};
+use lofigirl_shared_common::config::{
+    ConfigError, LastFMClientSessionConfig, ListenBrainzConfig,
+};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -17,7 +19,7 @@ impl TokenDB {
 
     pub async fn get_or_generate_token(
         &self,
-        lastfm: Option<LastFMConfig>,
+        lastfm: Option<LastFMClientSessionConfig>,
         listenbrainz: Option<ListenBrainzConfig>,
     ) -> Result<String> {
         (lastfm.is_some() && listenbrainz.is_some())
@@ -66,13 +68,13 @@ impl TokenDB {
         }
     }
 
-    async fn get_lastfm_id(&self, lastfm: &LastFMConfig) -> Result<i64> {
+    async fn get_lastfm_id(&self, lastfm: &LastFMClientSessionConfig) -> Result<i64> {
         let mut conn = self.pool.acquire().await?;
         let optional_id = sqlx::query!(
             r#"
-                SELECT id FROM lastfm WHERE username = ?1
+                SELECT id FROM lastfm WHERE session_key = ?1
             "#,
-            lastfm.username
+            lastfm.session_key
         )
         .fetch_optional(&mut conn)
         .await?;
@@ -81,13 +83,10 @@ impl TokenDB {
             None => {
                 let id = sqlx::query!(
                     r#"
-                        INSERT INTO lastfm (username, password, api_key, api_secret)
-                        VALUES ( ?1, ?2, ?3, ?4)
+                        INSERT INTO lastfm ( session_key )
+                        VALUES ( ?1 )
                     "#,
-                    lastfm.username,
-                    lastfm.password,
-                    lastfm.api_key,
-                    lastfm.api_secret,
+                    lastfm.session_key,
                 )
                 .execute(&mut conn)
                 .await?
@@ -128,7 +127,7 @@ impl TokenDB {
     pub async fn get_info_from_token(
         &self,
         token_str: &str,
-    ) -> Result<(Option<LastFMConfig>, Option<ListenBrainzConfig>)> {
+    ) -> Result<(Option<LastFMClientSessionConfig>, Option<ListenBrainzConfig>)> {
         let mut conn = self.pool.acquire().await?;
         let rec = sqlx::query!(
             r#"
@@ -166,22 +165,19 @@ impl TokenDB {
         Ok(ListenBrainzConfig { token: rec.token })
     }
 
-    async fn get_lastfm_config(&self, id: i64) -> Result<LastFMConfig> {
+    async fn get_lastfm_config(&self, id: i64) -> Result<LastFMClientSessionConfig> {
         let mut conn = self.pool.acquire().await?;
         let rec = sqlx::query!(
             r#"
-                SELECT username, password, api_key, api_secret FROM lastfm
+                SELECT session_key FROM lastfm
                 WHERE id = ?1
             "#,
             id
         )
         .fetch_one(&mut conn)
         .await?;
-        Ok(LastFMConfig {
-            api_key: rec.api_key,
-            api_secret: rec.api_secret,
-            username: rec.username,
-            password: rec.password,
+        Ok(LastFMClientSessionConfig {
+            session_key: rec.session_key,
         })
     }
 }

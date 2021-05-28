@@ -10,10 +10,7 @@ CREATE TABLE IF NOT EXISTS tokens (
 
 CREATE TABLE IF NOT EXISTS lastfm (
     id          INTEGER PRIMARY KEY NOT NULL,
-    username    TEXT NOT NULL,
-    password    TEXT NOT NULL,
-    api_key     TEXT NOT NULL,
-    api_secret  TEXT NOT NULL
+    session_key    TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS listenbrainz (

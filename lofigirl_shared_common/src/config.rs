@@ -3,11 +3,33 @@ use thiserror::Error;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LastFMConfig {
-    pub api_key: String,
-    pub api_secret: String,
+    #[serde(flatten)]
+    pub client: LastFMClientConfig,
+    #[serde(flatten)]
+    pub api: LastFMApiConfig,
+}
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub enum LastFMClientConfig {
+    PasswordAuth(LastFMClientPasswordConfig),
+    SessionAuth(LastFMClientSessionConfig),
+}
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct LastFMClientPasswordConfig {
     pub username: String,
     pub password: String,
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct LastFMClientSessionConfig {
+    pub session_key: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct LastFMApiConfig {
+    pub api_key: String,
+    pub api_secret: String,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ListenBrainzConfig {
     pub token: String,
