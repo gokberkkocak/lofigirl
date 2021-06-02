@@ -8,6 +8,17 @@ use serde::Deserialize;
 pub struct ServerConfig {
     pub video: VideoConfig,
     pub lastfmapi: Option<LastFMApiConfig>,
+    #[serde(default = "default_port")]
+    pub port: u32,
+    #[serde(default = "default_token_db")]
+    pub token_db: String,
+}
+
+fn default_port() -> u32 {
+    8888
+}
+fn default_token_db() -> String {
+    String::from("token.db")
 }
 
 impl ServerConfig {

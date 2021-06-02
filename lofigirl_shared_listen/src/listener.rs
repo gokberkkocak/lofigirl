@@ -1,7 +1,6 @@
-use std::fmt;
-
 use anyhow::Result;
 use listenbrainz::ListenBrainz;
+use lofigirl_shared_common::api::Action;
 use lofigirl_shared_common::config::{
     LastFMClientConfig, LastFMClientSessionConfig, LastFMConfig, ListenBrainzConfig,
 };
@@ -96,12 +95,12 @@ pub enum LastFMError {
     NoAPI,
 }
 
-enum Action {
-    Listened,
-    PlayingNow,
+trait ActForListener {
+    fn act_for_lastfm(&self, listener: &Scrobbler, scrobble: &Scrobble) -> Result<()>;
+    fn act_for_listenbrainz(&self, listener: &ListenBrainz, track: &Track) -> Result<()>;
 }
 
-impl Action {
+impl ActForListener for Action {
     fn act_for_lastfm(&self, listener: &Scrobbler, scrobble: &Scrobble) -> Result<()> {
         match self {
             Action::Listened => {
@@ -120,14 +119,5 @@ impl Action {
             Action::PlayingNow => listener.playing_now(&track.artist, &track.song, "")?,
         }
         Ok(())
-    }
-}
-
-impl fmt::Display for Action {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Action::Listened => write!(f, "Listened"),
-            Action::PlayingNow => write!(f, "Playing Now"),
-        }
     }
 }

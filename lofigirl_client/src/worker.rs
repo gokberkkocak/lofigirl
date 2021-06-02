@@ -1,9 +1,12 @@
 use crate::config::Config;
 use anyhow::Result;
+use lofigirl_shared_common::api::Action;
+use lofigirl_shared_common::api::ScrobbleRequest;
 use lofigirl_shared_common::api::SessionRequest;
 use lofigirl_shared_common::api::SessionResponse;
 use lofigirl_shared_common::config::LastFMClientPasswordConfig;
 use lofigirl_shared_common::config::LastFMClientSessionConfig;
+use lofigirl_shared_common::config::ListenBrainzConfig;
 use lofigirl_shared_common::SEND_END_POINT;
 use lofigirl_shared_common::SESSION_END_POINT;
 use lofigirl_shared_common::TRACK_END_POINT;
@@ -24,17 +27,20 @@ use thiserror::Error;
 #[cfg(feature = "standalone")]
 use url::Url;
 
+#[cfg(not(feature = "standalone"))]
 pub struct Worker {
-    #[cfg(feature = "standalone")]
-    listener: Listener,
-    #[cfg(feature = "standalone")]
-    image_proc: ImageProcessor,
-    #[cfg(not(feature = "standalone"))]
     client: Client,
-    #[cfg(not(feature = "standalone"))]
     track_request_url: String,
-    #[cfg(not(feature = "standalone"))]
     track_send_url: String,
+    listenbrainz_config: Option<ListenBrainzConfig>,
+    lastfm_session_config: Option<LastFMClientSessionConfig>,
+    prev_track_with_count: Option<TrackWithCount>,
+}
+
+#[cfg(feature = "standalone")]
+pub struct Worker {
+    listener: Listener,
+    image_proc: ImageProcessor,
     prev_track_with_count: Option<TrackWithCount>,
 }
 
@@ -74,11 +80,12 @@ impl Worker {
         let image_proc = ImageProcessor::new(video_url)?;
         #[cfg(not(feature = "standalone"))]
         let client = Client::new();
-        if let Some(lastfm) = &config.lastfm {
-            match &lastfm.client {
-                lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => {
+        let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
+            let s = match &lastfm.client {
+                lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) =>
+                {
                     #[cfg(not(feature = "standalone"))]
-                    let s = Worker::get_session(
+                    Worker::get_session(
                         &client,
                         p,
                         &config
@@ -88,11 +95,14 @@ impl Worker {
                             .link
                             .as_str(),
                     )
-                    .await?;
+                    .await?
                 }
-                lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => {},
-            }
-        }
+                lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => s.clone(),
+            };
+            Some(s)
+        } else {
+            None
+        };
         #[cfg(not(feature = "standalone"))]
         let track_request_url = format!(
             "{}{}/{}",
@@ -131,6 +141,10 @@ impl Worker {
             track_request_url,
             #[cfg(not(feature = "standalone"))]
             track_send_url,
+            #[cfg(not(feature = "standalone"))]
+            listenbrainz_config: config.listenbrainz.to_owned(),
+            #[cfg(not(feature = "standalone"))]
+            lastfm_session_config,
             prev_track_with_count: None,
         })
     }
@@ -172,11 +186,15 @@ impl Worker {
     }
 
     #[cfg(not(feature = "standalone"))]
-    async fn post_track(&self, track: &Track) -> Result<()> {
-        let session_response = self
-            .client
+    async fn post_track(&self, track: &Track, action: Action) -> Result<()> {
+        self.client
             .post(&self.track_send_url)
-            .json(track)
+            .json(&ScrobbleRequest {
+                lastfm: self.lastfm_session_config.to_owned(),
+                listenbrainz: self.listenbrainz_config.to_owned(),
+                action,
+                track: track.to_owned(),
+            })
             .send()
             .await?;
         Ok(())
@@ -222,7 +240,7 @@ impl Worker {
         #[cfg(feature = "standalone")]
         self.listener.send_listen(track)?;
         #[cfg(not(feature = "standalone"))]
-        self.post_track(track).await?;
+        self.post_track(track, Action::Listened).await?;
         Ok(())
     }
 
@@ -237,7 +255,7 @@ impl Worker {
         #[cfg(feature = "standalone")]
         self.listener.send_now_playing(track)?;
         #[cfg(not(feature = "standalone"))]
-        self.post_track(track).await?;
+        self.post_track(track, Action::PlayingNow).await?;
         Ok(())
     }
 }

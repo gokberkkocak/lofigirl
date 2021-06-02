@@ -3,7 +3,7 @@ use lofigirl_shared_common::config::{ConfigError, LastFMClientSessionConfig, Lis
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
-struct TokenDB {
+pub struct TokenDB {
     pool: SqlitePool,
 }
 

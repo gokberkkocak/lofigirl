@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -23,7 +25,27 @@ pub struct SessionResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TokenRequest {
+    pub lastfm_session_key: String,
+    pub listenbrainz_token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenResponse {
+    pub token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Action {
     PlayingNow,
     Listened,
+}
+
+impl fmt::Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Action::Listened => write!(f, "Listened"),
+            Action::PlayingNow => write!(f, "Playing Now"),
+        }
+    }
 }
