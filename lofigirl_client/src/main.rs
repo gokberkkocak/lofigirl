@@ -36,7 +36,7 @@ fn main() -> Result<()> {
 async fn body() -> Result<()> {
     let opt = Opt::from_args();
     let config = Config::from_toml(&opt.config).await?;
-    let mut worker = Worker::new(&config, opt.second)?;
+    let mut worker = Worker::new(&config, opt.second).await?;
     loop {
         let wait_duration = match worker.work().await {
             true => &REGULAR_INTERVAL,

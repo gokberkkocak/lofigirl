@@ -13,12 +13,12 @@ pub struct ScrobbleRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterRequest {
+pub struct SessionRequest {
     pub password_config: LastFMClientPasswordConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterResponse {
+pub struct SessionResponse {
     pub session_config: LastFMClientSessionConfig,
 }
 

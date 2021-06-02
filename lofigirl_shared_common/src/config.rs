@@ -6,9 +6,11 @@ pub struct LastFMConfig {
     #[serde(flatten)]
     pub client: LastFMClientConfig,
     #[serde(flatten)]
-    pub api: LastFMApiConfig,
+    pub api: Option<LastFMApiConfig>,
 }
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
 pub enum LastFMClientConfig {
     PasswordAuth(LastFMClientPasswordConfig),
     SessionAuth(LastFMClientSessionConfig),
