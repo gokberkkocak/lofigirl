@@ -9,10 +9,7 @@ use lofigirl_shared_common::track::Track;
 use rustfm_scrobble::{Scrobble, Scrobbler};
 use thiserror::Error;
 
-#[cfg(feature = "notify")]
-use notify_rust::Notification;
-#[cfg(feature = "notify")]
-use notify_rust::Timeout;
+
 #[derive(Default)]
 pub struct Listener {
     lastfm_listener: Option<Scrobbler>,
@@ -47,24 +44,10 @@ impl Listener {
     }
 
     pub fn send_listen(&self, track: &Track) -> Result<()> {
-        #[cfg(feature = "notify")]
-        Notification::new()
-            .summary("Scrobbled")
-            .body(&format!("{} - {}", &track.artist, &track.song))
-            .appname("lofigirl")
-            .timeout(Timeout::Milliseconds(6000))
-            .show()?;
         self.send_action(Action::Listened, track)
     }
 
     pub fn send_now_playing(&self, track: &Track) -> Result<()> {
-        #[cfg(feature = "notify")]
-        Notification::new()
-            .summary("Now playing")
-            .body(&format!("{} - {}", &track.artist, &track.song))
-            .appname("lofigirl")
-            .timeout(Timeout::Milliseconds(6000))
-            .show()?;
         self.send_action(Action::PlayingNow, track)
     }
 

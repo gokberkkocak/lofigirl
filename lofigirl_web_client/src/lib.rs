@@ -8,7 +8,7 @@ mod view;
 use std::convert::TryInto;
 
 use lofigirl_shared_common::{
-    api::{Action, SendInfo},
+    api::{Action, ScrobbleRequest},
     config::{LastFMConfig, ListenBrainzConfig},
     track::Track,
     REGULAR_INTERVAL,
@@ -218,7 +218,7 @@ async fn send_info(
 ) -> fetch::Result<()> {
     Request::new(format!("{}/{}", server, "send"))
         .method(Method::Post)
-        .json(&SendInfo {
+        .json(&ScrobbleRequest {
             lastfm: l,
             listenbrainz: ls,
             action,

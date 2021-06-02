@@ -17,8 +17,9 @@ structopt = "0.3"
 anyhow = "1.0"
 thiserror = "1.0"
 url = { version = "2.2", optional = true}
+notify-rust = { version = "4.5", optional = true }
 
 
 [features]
 standalone = ["lofigirl_sys", "url"]
-notify = ["lofigirl_shared_listen/notify"]
+notify = ["notify-rust"]

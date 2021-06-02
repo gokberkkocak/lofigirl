@@ -28,7 +28,7 @@ impl ServerWorker {
         } else {
             None
         };
-        let state = web::Data::new(AppState::new());
+        let state = web::Data::new(AppState::new(config.lastfmapi.clone()));
         Ok(ServerWorker {
             main_image_proc,
             second_image_proc,

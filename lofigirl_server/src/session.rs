@@ -1,7 +1,5 @@
 use anyhow::Result;
-use lofigirl_shared_common::config::{
-    ConfigError, LastFMClientSessionConfig, ListenBrainzConfig,
-};
+use lofigirl_shared_common::config::{ConfigError, LastFMClientSessionConfig, ListenBrainzConfig};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -127,7 +125,10 @@ impl TokenDB {
     pub async fn get_info_from_token(
         &self,
         token_str: &str,
-    ) -> Result<(Option<LastFMClientSessionConfig>, Option<ListenBrainzConfig>)> {
+    ) -> Result<(
+        Option<LastFMClientSessionConfig>,
+        Option<ListenBrainzConfig>,
+    )> {
         let mut conn = self.pool.acquire().await?;
         let rec = sqlx::query!(
             r#"
