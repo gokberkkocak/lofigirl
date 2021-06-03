@@ -50,7 +50,9 @@ impl Worker {
         let mut listener = Listener::new();
         #[cfg(feature = "standalone")]
         if let Some(lastfm) = &config.lastfm {
-            listener.set_lastfm_listener(lastfm)?;
+            if let Some(api) = &lastfm.api {
+                listener.set_lastfm_listener(&api, &lastfm.client)?;
+            }
         }
         #[cfg(feature = "standalone")]
         if let Some(listenbrainz) = &config.listenbrainz {
@@ -81,10 +83,9 @@ impl Worker {
         #[cfg(not(feature = "standalone"))]
         let client = Client::new();
         let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
-            let s = match &lastfm.client {
-                lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) =>
-                {
-                    #[cfg(not(feature = "standalone"))]
+            #[cfg(not(feature = "standalone"))]
+            match &lastfm.client {
+                lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => Some(
                     Worker::get_session(
                         &client,
                         p,
@@ -95,11 +96,18 @@ impl Worker {
                             .link
                             .as_str(),
                     )
-                    .await?
+                    .await?,
+                ),
+                lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => {
+                    Some(s.clone())
                 }
-                lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => s.clone(),
-            };
-            Some(s)
+            }
+            #[cfg(feature = "standalone")]
+            if let Some(api) = &lastfm.api {
+                Some(Listener::convert_client_to_session(api, &lastfm.client)?)
+            } else {
+                None
+            }
         } else {
             None
         };

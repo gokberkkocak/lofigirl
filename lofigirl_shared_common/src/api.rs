@@ -26,8 +26,8 @@ pub struct SessionResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenRequest {
-    pub lastfm_session_key: String,
-    pub listenbrainz_token: String,
+    pub lastfm_session_key: Option<String>,
+    pub listenbrainz_token: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

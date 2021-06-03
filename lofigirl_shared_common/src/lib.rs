@@ -11,5 +11,6 @@ pub static FAST_TRY_INTERVAL: Lazy<Duration> = Lazy::new(|| Duration::from_secs(
 pub const SEND_END_POINT: &str = "/send";
 pub const TRACK_END_POINT: &str = "/track";
 pub const SESSION_END_POINT: &str = "/session";
+pub const TOKEN_END_POINT: &str = "/token";
 pub const CHILL_API_END_POINT: &str = "chill";
 pub const SLEEP_API_END_POINT: &str = "sleep";

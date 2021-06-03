@@ -3,10 +3,12 @@ use actix_cors::Cors;
 use actix_http::http::StatusCode;
 use actix_web::{web, App, HttpServer};
 use actix_web::{HttpResponse, Result};
-use lofigirl_shared_common::api::{ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest};
-use lofigirl_shared_common::config::{LastFMApiConfig, LastFMClientConfig, LastFMConfig};
+use lofigirl_shared_common::api::{
+    ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse,
+};
+use lofigirl_shared_common::config::{LastFMApiConfig, LastFMClientConfig};
 use lofigirl_shared_common::{track::Track, CHILL_API_END_POINT, SLEEP_API_END_POINT};
-use lofigirl_shared_common::{SEND_END_POINT, SESSION_END_POINT, TRACK_END_POINT};
+use lofigirl_shared_common::{SEND_END_POINT, SESSION_END_POINT, TOKEN_END_POINT, TRACK_END_POINT};
 use lofigirl_shared_listen::listener::Listener;
 use parking_lot::Mutex;
 use serde::Serialize;
@@ -20,7 +22,10 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(api: Option<LastFMApiConfig>, token_db_file: &str) -> Result<AppState> {
+    pub async fn new(
+        api: Option<LastFMApiConfig>,
+        token_db_file: &str,
+    ) -> anyhow::Result<AppState> {
         Ok(AppState {
             lastfm_api: Mutex::new(api),
             main_track: Mutex::new(None),
@@ -56,13 +61,11 @@ async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Re
     let api = data.lastfm_api.lock();
     if let Some(lastfm_client_session) = info.lastfm {
         if let Some(api) = &*api {
-            let l = LastFMConfig {
-                client: LastFMClientConfig::SessionAuth(lastfm_client_session),
-                api: Some(api.clone()),
-            };
-            listener.set_lastfm_listener(&l).map_err(|e| {
-                actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR)
-            })?;
+            listener
+                .set_lastfm_listener(api, &LastFMClientConfig::SessionAuth(lastfm_client_session))
+                .map_err(|e| {
+                    actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR)
+                })?;
         }
     }
     if let Some(listenbrainz) = info.listenbrainz {
@@ -94,21 +97,25 @@ async fn session(
     let info = info.into_inner();
     let api = data.lastfm_api.lock();
     if let Some(api) = &*api {
-        let l = LastFMConfig {
-            client: LastFMClientConfig::PasswordAuth(info.password_config),
-            api: Some(api.clone()),
-        };
-        let session_config = Listener::convert_client_to_session(&l).map_err(|e| {
-            actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR)
-        })?;
+        let session_config = Listener::convert_client_to_session(
+            api,
+            &LastFMClientConfig::PasswordAuth(info.password_config),
+        )
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
         Ok(HttpResponse::Ok().json(SessionResponse { session_config }))
     } else {
         Ok(HttpResponse::NotFound().json(ServerResponseError::APINotAvailable))
     }
 }
 
-async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) {
+async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) -> Result<HttpResponse> {
     let info = info.into_inner();
+    let token_db = data.token_db.lock();
+    let token = token_db
+        .get_or_generate_token(&info.lastfm_session_key, &info.listenbrainz_token)
+        .await
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    Ok(HttpResponse::Ok().json(TokenResponse { token }))
 }
 
 pub struct LofiServer;
@@ -131,6 +138,7 @@ impl LofiServer {
                 )
                 .route(SEND_END_POINT, web::post().to(send))
                 .route(SESSION_END_POINT, web::post().to(session))
+                .route(TOKEN_END_POINT, web::post().to(token))
         })
         .bind(format!("0.0.0.0:{}", port))?
         // .bind(format!("127.0.0.1:{}", port))?

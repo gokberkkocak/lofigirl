@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::Result;
 use lofigirl_shared_common::config::{
-    ConfigError, LastFMClientConfig, LastFMConfig, ListenBrainzConfig, ServerConfig, VideoConfig,
+    ConfigError, LastFMConfig, ListenBrainzConfig, ServerConfig, VideoConfig,
 };
 use serde::Deserialize;
 

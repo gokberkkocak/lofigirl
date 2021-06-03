@@ -27,7 +27,8 @@ async fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
     let config = ServerConfig::from_toml(&opt.config)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-    let mut worker = ServerWorker::new(&config, opt.only_first).await
+    let mut worker = ServerWorker::new(&config, opt.only_first)
+        .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     let state = worker.state.clone();
     actix_rt::spawn(async move {

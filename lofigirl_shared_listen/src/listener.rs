@@ -2,7 +2,8 @@ use anyhow::Result;
 use listenbrainz::ListenBrainz;
 use lofigirl_shared_common::api::Action;
 use lofigirl_shared_common::config::{
-    LastFMClientConfig, LastFMClientSessionConfig, LastFMConfig, ListenBrainzConfig,
+    LastFMApiConfig, LastFMClientConfig, LastFMClientSessionConfig,
+    ListenBrainzConfig,
 };
 use lofigirl_shared_common::track::Track;
 use rustfm_scrobble::{Scrobble, Scrobbler};
@@ -19,23 +20,23 @@ impl Listener {
         Default::default()
     }
 
-    pub fn set_lastfm_listener(&mut self, lastfm: &LastFMConfig) -> Result<()> {
-        if let Some(api) = &lastfm.api {
-            let mut lastfm_listener = Scrobbler::new(&api.api_key, &api.api_secret);
-            match &lastfm.client {
-                LastFMClientConfig::PasswordAuth(pass_config) => {
-                    lastfm_listener
-                        .authenticate_with_password(&pass_config.username, &pass_config.password)?;
-                }
-                LastFMClientConfig::SessionAuth(session_config) => {
-                    lastfm_listener.authenticate_with_session_key(&session_config.session_key);
-                }
+    pub fn set_lastfm_listener(
+        &mut self,
+        lastfm_api: &LastFMApiConfig,
+        lastfm_client: &LastFMClientConfig,
+    ) -> Result<()> {
+        let mut lastfm_listener = Scrobbler::new(&lastfm_api.api_key, &lastfm_api.api_secret);
+        match &lastfm_client {
+            LastFMClientConfig::PasswordAuth(pass_config) => {
+                lastfm_listener
+                    .authenticate_with_password(&pass_config.username, &pass_config.password)?;
             }
-            self.lastfm_listener = Some(lastfm_listener);
-            Ok(())
-        } else {
-            Err(anyhow::Error::from(LastFMError::NoAPI))
+            LastFMClientConfig::SessionAuth(session_config) => {
+                lastfm_listener.authenticate_with_session_key(&session_config.session_key);
+            }
         }
+        self.lastfm_listener = Some(lastfm_listener);
+        Ok(())
     }
 
     pub fn set_listenbrainz_listener(&mut self, listenbrainz: &ListenBrainzConfig) -> Result<()> {
@@ -65,24 +66,22 @@ impl Listener {
         Ok(())
     }
 
-    pub fn convert_client_to_session(lastfm: &LastFMConfig) -> Result<LastFMClientSessionConfig> {
-        if let Some(api) = &lastfm.api {
-            let mut lastfm_listener = Scrobbler::new(&api.api_key, &api.api_secret);
-            match &lastfm.client {
-                LastFMClientConfig::PasswordAuth(client) => {
-                    lastfm_listener
-                        .authenticate_with_password(&client.username, &client.password)?;
-                    Ok(LastFMClientSessionConfig {
-                        session_key: lastfm_listener
-                            .session_key()
-                            .ok_or(LastFMError::NoAuth)?
-                            .to_owned(),
-                    })
-                }
-                LastFMClientConfig::SessionAuth(session) => Ok(session.clone()),
+    pub fn convert_client_to_session(
+        lastfm_api: &LastFMApiConfig,
+        lastfm_client: &LastFMClientConfig,
+    ) -> Result<LastFMClientSessionConfig> {
+        let mut lastfm_listener = Scrobbler::new(&lastfm_api.api_key, &lastfm_api.api_secret);
+        match &lastfm_client {
+            LastFMClientConfig::PasswordAuth(client) => {
+                lastfm_listener.authenticate_with_password(&client.username, &client.password)?;
+                Ok(LastFMClientSessionConfig {
+                    session_key: lastfm_listener
+                        .session_key()
+                        .ok_or(LastFMError::NoAuth)?
+                        .to_owned(),
+                })
             }
-        } else {
-            Err(anyhow::Error::from(LastFMError::NoAPI))
+            LastFMClientConfig::SessionAuth(session) => Ok(session.clone()),
         }
     }
 }
@@ -91,8 +90,6 @@ impl Listener {
 pub enum LastFMError {
     #[error("LastFM is not auth")]
     NoAuth,
-    #[error("LastFM API missing")]
-    NoAPI,
 }
 
 trait ActForListener {
