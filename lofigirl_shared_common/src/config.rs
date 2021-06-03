@@ -36,13 +36,13 @@ pub struct LastFMApiConfig {
 pub struct ListenBrainzConfig {
     pub token: String,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct VideoConfig {
     pub link: String,
     pub second_link: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ServerConfig {
     pub link: String,
 }

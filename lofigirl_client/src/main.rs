@@ -35,8 +35,10 @@ fn main() -> Result<()> {
 
 async fn body() -> Result<()> {
     let opt = Opt::from_args();
-    let config = Config::from_toml(&opt.config).await?;
-    let mut worker = Worker::new(&config, opt.second).await?;
+    let mut config = Config::from_toml(&opt.config).await?;
+    let mut worker = Worker::new(&mut config, opt.second).await?;
+    // modify config file so that we can store token and/or session_key
+    config.to_toml(&opt.config).await?;
     loop {
         let wait_duration = match worker.work().await {
             true => &REGULAR_INTERVAL,

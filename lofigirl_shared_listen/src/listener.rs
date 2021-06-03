@@ -2,8 +2,7 @@ use anyhow::Result;
 use listenbrainz::ListenBrainz;
 use lofigirl_shared_common::api::Action;
 use lofigirl_shared_common::config::{
-    LastFMApiConfig, LastFMClientConfig, LastFMClientSessionConfig,
-    ListenBrainzConfig,
+    LastFMApiConfig, LastFMClientConfig, LastFMClientSessionConfig, ListenBrainzConfig,
 };
 use lofigirl_shared_common::track::Track;
 use rustfm_scrobble::{Scrobble, Scrobbler};

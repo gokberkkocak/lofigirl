@@ -3,13 +3,12 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::{LastFMClientPasswordConfig, LastFMClientSessionConfig, ListenBrainzConfig},
+    config::{LastFMClientPasswordConfig, LastFMClientSessionConfig},
     track::Track,
 };
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScrobbleRequest {
-    pub lastfm: Option<LastFMClientSessionConfig>,
-    pub listenbrainz: Option<ListenBrainzConfig>,
+    pub token: String,
     pub action: Action,
     pub track: Track,
 }

@@ -58,8 +58,13 @@ async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
 async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Result<HttpResponse> {
     let info = info.into_inner();
     let mut listener = Listener::new();
+    let token_db = data.token_db.lock();
     let api = data.lastfm_api.lock();
-    if let Some(lastfm_client_session) = info.lastfm {
+    let (lfm, lb) = token_db
+        .get_info_from_token(&info.token)
+        .await
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    if let Some(lastfm_client_session) = lfm {
         if let Some(api) = &*api {
             listener
                 .set_lastfm_listener(api, &LastFMClientConfig::SessionAuth(lastfm_client_session))
@@ -68,7 +73,7 @@ async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Re
                 })?;
         }
     }
-    if let Some(listenbrainz) = info.listenbrainz {
+    if let Some(listenbrainz) = lb {
         listener
             .set_listenbrainz_listener(&listenbrainz)
             .map_err(|e| {

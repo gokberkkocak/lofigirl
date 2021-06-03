@@ -1,14 +1,18 @@
 use crate::config::Config;
+use crate::config::TokenConfig;
 use anyhow::Result;
 use lofigirl_shared_common::api::Action;
 use lofigirl_shared_common::api::ScrobbleRequest;
 use lofigirl_shared_common::api::SessionRequest;
 use lofigirl_shared_common::api::SessionResponse;
+use lofigirl_shared_common::api::TokenRequest;
+use lofigirl_shared_common::api::TokenResponse;
+use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::config::LastFMClientPasswordConfig;
 use lofigirl_shared_common::config::LastFMClientSessionConfig;
-use lofigirl_shared_common::config::ListenBrainzConfig;
 use lofigirl_shared_common::SEND_END_POINT;
 use lofigirl_shared_common::SESSION_END_POINT;
+use lofigirl_shared_common::TOKEN_END_POINT;
 use lofigirl_shared_common::TRACK_END_POINT;
 use lofigirl_shared_common::{config::ConfigError, track::Track};
 #[cfg(not(feature = "standalone"))]
@@ -32,8 +36,7 @@ pub struct Worker {
     client: Client,
     track_request_url: String,
     track_send_url: String,
-    listenbrainz_config: Option<ListenBrainzConfig>,
-    lastfm_session_config: Option<LastFMClientSessionConfig>,
+    token: String,
     prev_track_with_count: Option<TrackWithCount>,
 }
 
@@ -45,19 +48,7 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub async fn new(config: &Config, second: bool) -> Result<Worker> {
-        #[cfg(feature = "standalone")]
-        let mut listener = Listener::new();
-        #[cfg(feature = "standalone")]
-        if let Some(lastfm) = &config.lastfm {
-            if let Some(api) = &lastfm.api {
-                listener.set_lastfm_listener(&api, &lastfm.client)?;
-            }
-        }
-        #[cfg(feature = "standalone")]
-        if let Some(listenbrainz) = &config.listenbrainz {
-            listener.set_listenbrainz_listener(listenbrainz)?;
-        }
+    pub async fn new(config: &mut Config, second: bool) -> Result<Worker> {
         #[cfg(feature = "standalone")]
         let video_url = if second {
             Url::parse(
@@ -111,15 +102,31 @@ impl Worker {
         } else {
             None
         };
+        #[cfg(feature = "standalone")]
+        let mut listener = Listener::new();
+        #[cfg(feature = "standalone")]
+        if let Some(lastfm) = &config.lastfm {
+            if let Some(api) = &lastfm.api {
+                if let Some(session) = lastfm_session_config {
+                    listener.set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
+                }
+            }
+        }
+        #[cfg(feature = "standalone")]
+        if let Some(listenbrainz) = &config.listenbrainz {
+            listener.set_listenbrainz_listener(listenbrainz)?;
+        }
+        #[cfg(not(feature = "standalone"))]
+        let base_url = config
+            .server
+            .as_ref()
+            .ok_or(ConfigError::EmptyServerConfig)?
+            .link
+            .as_str();
         #[cfg(not(feature = "standalone"))]
         let track_request_url = format!(
             "{}{}/{}",
-            &config
-                .server
-                .as_ref()
-                .ok_or(ConfigError::EmptyServerConfig)?
-                .link
-                .as_str(),
+            base_url,
             TRACK_END_POINT,
             if second {
                 &SLEEP_API_END_POINT
@@ -128,16 +135,31 @@ impl Worker {
             }
         );
         #[cfg(not(feature = "standalone"))]
-        let track_send_url = format!(
-            "{}{}",
-            &config
-                .server
-                .as_ref()
-                .ok_or(ConfigError::EmptyServerConfig)?
-                .link
-                .as_str(),
-            SEND_END_POINT
-        );
+        let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
+        #[cfg(not(feature = "standalone"))]
+        let lastfm_session_key = if let Some(s) = lastfm_session_config {
+            if let Some(l) = &mut config.lastfm {
+                l.client = LastFMClientConfig::SessionAuth(s.to_owned());
+            }
+            Some(s.session_key)
+        } else {
+            None
+        };
+        #[cfg(not(feature = "standalone"))]
+        let listenbrainz_token = if let Some(l) = &config.listenbrainz {
+            Some(l.token.to_owned())
+        } else {
+            None
+        };
+        #[cfg(not(feature = "standalone"))]
+        let token =
+            Worker::get_token(&client, lastfm_session_key, listenbrainz_token, base_url).await?;
+        #[cfg(not(feature = "standalone"))]
+        {
+            config.session = Some(TokenConfig {
+                token: token.clone(),
+            });
+        }
         Ok(Worker {
             #[cfg(feature = "standalone")]
             listener,
@@ -150,9 +172,7 @@ impl Worker {
             #[cfg(not(feature = "standalone"))]
             track_send_url,
             #[cfg(not(feature = "standalone"))]
-            listenbrainz_config: config.listenbrainz.to_owned(),
-            #[cfg(not(feature = "standalone"))]
-            lastfm_session_config,
+            token,
             prev_track_with_count: None,
         })
     }
@@ -183,6 +203,26 @@ impl Worker {
         Ok(session_response.session_config)
     }
 
+    #[cfg(not(feature = "standalone"))]
+    async fn get_token(
+        client: &Client,
+        lastfm_session_key: Option<String>,
+        listenbrainz_token: Option<String>,
+        base_url: &str,
+    ) -> Result<String> {
+        let token_response = client
+            .post(&format!("{}{}", base_url, TOKEN_END_POINT))
+            .json(&TokenRequest {
+                lastfm_session_key,
+                listenbrainz_token,
+            })
+            .send()
+            .await?
+            .json::<TokenResponse>()
+            .await?;
+        Ok(token_response.token)
+    }
+
     pub async fn work(&mut self) -> bool {
         match self.fragile_work().await {
             Ok(_) => true,
@@ -198,10 +238,9 @@ impl Worker {
         self.client
             .post(&self.track_send_url)
             .json(&ScrobbleRequest {
-                lastfm: self.lastfm_session_config.to_owned(),
-                listenbrainz: self.listenbrainz_config.to_owned(),
                 action,
                 track: track.to_owned(),
+                token: self.token.to_owned(),
             })
             .send()
             .await?;
