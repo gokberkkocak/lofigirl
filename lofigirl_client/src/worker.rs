@@ -102,7 +102,7 @@ impl Worker {
 
     #[cfg(not(feature = "standalone"))]
     pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
-        let mut config_changed;
+        let mut config_changed = false;
         let client = Client::new();
         let base_url = config
             .server
@@ -114,14 +114,13 @@ impl Worker {
         let token_config = config.session.take();
         let token = match token_config {
             Some(token) => {
-                config_changed = false;
                 token.token
             }
             None => {
                 let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
                     match &lastfm.client {
                         lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => {
-                            config_changed = true;
+                            config_changed = config_changed || true;
                             Some(
                                 Worker::get_session(
                                     &client,
@@ -137,7 +136,6 @@ impl Worker {
                             )
                         }
                         lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => {
-                            config_changed = false;
                             Some(s.clone())
                         }
                     }
