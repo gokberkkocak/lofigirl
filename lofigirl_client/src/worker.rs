@@ -1,35 +1,31 @@
 use crate::config::Config;
-use crate::config::TokenConfig;
 use anyhow::Result;
-use lofigirl_shared_common::api::Action;
-use lofigirl_shared_common::api::ScrobbleRequest;
-use lofigirl_shared_common::api::SessionRequest;
-use lofigirl_shared_common::api::SessionResponse;
-use lofigirl_shared_common::api::TokenRequest;
-use lofigirl_shared_common::api::TokenResponse;
 use lofigirl_shared_common::config::LastFMClientConfig;
-use lofigirl_shared_common::config::LastFMClientPasswordConfig;
-use lofigirl_shared_common::config::LastFMClientSessionConfig;
-use lofigirl_shared_common::SEND_END_POINT;
-use lofigirl_shared_common::SESSION_END_POINT;
-use lofigirl_shared_common::TOKEN_END_POINT;
-use lofigirl_shared_common::TRACK_END_POINT;
 use lofigirl_shared_common::{config::ConfigError, track::Track};
-#[cfg(not(feature = "standalone"))]
-use lofigirl_shared_common::{CHILL_API_END_POINT, SLEEP_API_END_POINT};
-#[cfg(feature = "standalone")]
-use lofigirl_shared_listen::listener::Listener;
-#[cfg(feature = "standalone")]
-use lofigirl_sys::image::ImageProcessor;
-#[cfg(feature = "notify")]
-use notify_rust::Notification;
-#[cfg(feature = "notify")]
-use notify_rust::Timeout;
-#[cfg(not(feature = "standalone"))]
-use reqwest::Client;
 use thiserror::Error;
+#[cfg(not(feature = "standalone"))]
+use {
+    crate::config::TokenConfig,
+    lofigirl_shared_common::api::Action,
+    lofigirl_shared_common::api::ScrobbleRequest,
+    lofigirl_shared_common::api::SessionRequest,
+    lofigirl_shared_common::api::SessionResponse,
+    lofigirl_shared_common::api::TokenRequest,
+    lofigirl_shared_common::api::TokenResponse,
+    lofigirl_shared_common::config::LastFMClientPasswordConfig,
+    lofigirl_shared_common::config::LastFMClientSessionConfig,
+    lofigirl_shared_common::SEND_END_POINT,
+    lofigirl_shared_common::SESSION_END_POINT,
+    lofigirl_shared_common::TOKEN_END_POINT,
+    lofigirl_shared_common::TRACK_END_POINT,
+    lofigirl_shared_common::{CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT},
+    reqwest::Client,
+};
+
 #[cfg(feature = "standalone")]
-use url::Url;
+use {lofigirl_shared_listen::listener::Listener, lofigirl_sys::image::ImageProcessor, url::Url};
+#[cfg(feature = "notify")]
+use {notify_rust::Notification, notify_rust::Timeout};
 
 #[cfg(not(feature = "standalone"))]
 pub struct Worker {
@@ -48,8 +44,9 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub async fn new(config: &mut Config, second: bool) -> Result<Worker> {
-        #[cfg(feature = "standalone")]
+    #[cfg(feature = "standalone")]
+    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+        let mut config_changed = false;
         let video_url = if second {
             Url::parse(
                 &config
@@ -69,32 +66,10 @@ impl Worker {
                     .link,
             )?
         };
-        #[cfg(feature = "standalone")]
         let image_proc = ImageProcessor::new(video_url)?;
-        #[cfg(not(feature = "standalone"))]
-        let client = Client::new();
         let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
-            #[cfg(not(feature = "standalone"))]
-            match &lastfm.client {
-                lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => Some(
-                    Worker::get_session(
-                        &client,
-                        p,
-                        &config
-                            .server
-                            .as_ref()
-                            .ok_or(ConfigError::EmptyServerConfig)?
-                            .link
-                            .as_str(),
-                    )
-                    .await?,
-                ),
-                lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => {
-                    Some(s.clone())
-                }
-            }
-            #[cfg(feature = "standalone")]
             if let Some(api) = &lastfm.api {
+                config_changed = true;
                 Some(Listener::convert_client_to_session(api, &lastfm.client)?)
             } else {
                 None
@@ -102,79 +77,120 @@ impl Worker {
         } else {
             None
         };
-        #[cfg(feature = "standalone")]
         let mut listener = Listener::new();
-        #[cfg(feature = "standalone")]
-        if let Some(lastfm) = &config.lastfm {
-            if let Some(api) = &lastfm.api {
-                if let Some(session) = lastfm_session_config {
-                    listener.set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
+        if let Some(lastfm) = &mut config.lastfm {
+            if let Some(session) = lastfm_session_config {
+                lastfm.client = LastFMClientConfig::SessionAuth(session.to_owned());
+                if let Some(api) = &lastfm.api {
+                    listener
+                        .set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
                 }
             }
         }
-        #[cfg(feature = "standalone")]
         if let Some(listenbrainz) = &config.listenbrainz {
             listener.set_listenbrainz_listener(listenbrainz)?;
         }
-        #[cfg(not(feature = "standalone"))]
+        Ok((
+            Worker {
+                listener,
+                image_proc,
+                prev_track_with_count: None,
+            },
+            config_changed,
+        ))
+    }
+
+    #[cfg(not(feature = "standalone"))]
+    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+        let mut config_changed;
+        let client = Client::new();
         let base_url = config
             .server
             .as_ref()
             .ok_or(ConfigError::EmptyServerConfig)?
             .link
             .as_str();
-        #[cfg(not(feature = "standalone"))]
+
+        let token_config = config.session.take();
+        let token = match token_config {
+            Some(token) => {
+                config_changed = false;
+                token.token
+            }
+            None => {
+                let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
+                    match &lastfm.client {
+                        lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => {
+                            config_changed = true;
+                            Some(
+                                Worker::get_session(
+                                    &client,
+                                    p,
+                                    &config
+                                        .server
+                                        .as_ref()
+                                        .ok_or(ConfigError::EmptyServerConfig)?
+                                        .link
+                                        .as_str(),
+                                )
+                                .await?,
+                            )
+                        }
+                        lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => {
+                            config_changed = false;
+                            Some(s.clone())
+                        }
+                    }
+                } else {
+                    config_changed = false;
+                    None
+                };
+                let lastfm_session_key = if let Some(s) = lastfm_session_config {
+                    if let Some(l) = &mut config.lastfm {
+                        l.client = LastFMClientConfig::SessionAuth(s.to_owned());
+                    }
+                    Some(s.session_key)
+                } else {
+                    None
+                };
+                let listenbrainz_token = if let Some(l) = &config.listenbrainz {
+                    Some(l.token.to_owned())
+                } else {
+                    None
+                };
+                let token =
+                    Worker::get_token(&client, lastfm_session_key, listenbrainz_token, base_url)
+                        .await?;
+                {
+                    config_changed = config_changed || true;
+                    config.session = Some(TokenConfig {
+                        token: token.clone(),
+                    });
+                }
+                token
+            }
+        };
         let track_request_url = format!(
             "{}{}/{}",
             base_url,
             TRACK_END_POINT,
             if second {
-                &SLEEP_API_END_POINT
+                &SLEEP_TRACK_API_END_POINT
             } else {
-                &CHILL_API_END_POINT
+                &CHILL_TRACK_API_END_POINT
             }
         );
-        #[cfg(not(feature = "standalone"))]
         let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
-        #[cfg(not(feature = "standalone"))]
-        let lastfm_session_key = if let Some(s) = lastfm_session_config {
-            if let Some(l) = &mut config.lastfm {
-                l.client = LastFMClientConfig::SessionAuth(s.to_owned());
-            }
-            Some(s.session_key)
-        } else {
-            None
-        };
-        #[cfg(not(feature = "standalone"))]
-        let listenbrainz_token = if let Some(l) = &config.listenbrainz {
-            Some(l.token.to_owned())
-        } else {
-            None
-        };
-        #[cfg(not(feature = "standalone"))]
-        let token =
-            Worker::get_token(&client, lastfm_session_key, listenbrainz_token, base_url).await?;
-        #[cfg(not(feature = "standalone"))]
-        {
-            config.session = Some(TokenConfig {
-                token: token.clone(),
-            });
-        }
-        Ok(Worker {
-            #[cfg(feature = "standalone")]
-            listener,
-            #[cfg(feature = "standalone")]
-            image_proc,
-            #[cfg(not(feature = "standalone"))]
-            client,
-            #[cfg(not(feature = "standalone"))]
-            track_request_url,
-            #[cfg(not(feature = "standalone"))]
-            track_send_url,
-            #[cfg(not(feature = "standalone"))]
-            token,
-            prev_track_with_count: None,
-        })
+        Ok((
+            Worker {
+                client,
+                track_request_url,
+                track_send_url,
+                token,
+                prev_track_with_count: None,
+            },
+            config_changed,
+        ))
     }
 
     #[cfg(not(feature = "standalone"))]

@@ -7,8 +7,10 @@ use lofigirl_shared_common::api::{
     ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse,
 };
 use lofigirl_shared_common::config::{LastFMApiConfig, LastFMClientConfig};
-use lofigirl_shared_common::{track::Track, CHILL_API_END_POINT, SLEEP_API_END_POINT};
-use lofigirl_shared_common::{SEND_END_POINT, SESSION_END_POINT, TOKEN_END_POINT, TRACK_END_POINT};
+use lofigirl_shared_common::{track::Track, CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT};
+use lofigirl_shared_common::{
+    HEALTH_END_POINT, SEND_END_POINT, SESSION_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
+};
 use lofigirl_shared_listen::listener::Listener;
 use parking_lot::Mutex;
 use serde::Serialize;
@@ -123,6 +125,10 @@ async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) -> Resu
     Ok(HttpResponse::Ok().json(TokenResponse { token }))
 }
 
+async fn health() -> Result<HttpResponse> {
+    Ok(HttpResponse::Ok().finish())
+}
+
 pub struct LofiServer;
 
 impl LofiServer {
@@ -134,16 +140,17 @@ impl LofiServer {
                 .wrap(cors)
                 .app_data(data.clone()) // <- register the created data
                 .route(
-                    &format!("{}/{}", TRACK_END_POINT, CHILL_API_END_POINT),
+                    &format!("{}/{}", TRACK_END_POINT, CHILL_TRACK_API_END_POINT),
                     web::get().to(get_main),
                 )
                 .route(
-                    &format!("{}/{}", TRACK_END_POINT, SLEEP_API_END_POINT),
+                    &format!("{}/{}", TRACK_END_POINT, SLEEP_TRACK_API_END_POINT),
                     web::get().to(get_second),
                 )
                 .route(SEND_END_POINT, web::post().to(send))
                 .route(SESSION_END_POINT, web::post().to(session))
                 .route(TOKEN_END_POINT, web::post().to(token))
+                .route(HEALTH_END_POINT, web::get().to(health))
         })
         .bind(format!("0.0.0.0:{}", port))?
         // .bind(format!("127.0.0.1:{}", port))?
