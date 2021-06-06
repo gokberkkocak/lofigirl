@@ -48,6 +48,24 @@ brew install opencv tesseract leptonica
 
 One of the crates [rustube](https://lib.rs/crates/rustube) in the project requires nightly compiler so the project only compiles on nightly compiler at the moment.
 
+Server side uses ```sqlx``` which does compile time query checking so a db must be present on the compilation time. To set the compile time db and run migrations;
+
+```
+cargo install sqlx-cli
+export DATABASE_URL=sqlite:token.db
+sqlx db create 
+sqlx migrate run
+```
+
+Instead of ```sqlx-cli```, ```sqlite3``` should also work to create the db but compilation still requires the ```DATABASE_URL``` environment variable.
+
+```
+sqlite3 token.db < migrations/20210525000135_table.sql 
+export DATABASE_URL=sqlite:token.db
+```
+
+Compile all;
+
 ```
 cargo build --release
 ```
@@ -64,23 +82,31 @@ All of the configuration can be put into a toml file like in the [example](https
 
 ```toml
 [lastfm] # client optional - server ignore
+username = "username" # will be removed after first run and turned into session_key 
+password = "password" # will be removed after first run and turned into session_key
+
+[lastfm_api] #standalone client and server uses. The others ignore
 api_key = "api_key"
 api_secret = "api_secret"
-username = "username"
-password = "password"
 
 [listenbrainz] # client optional - server ignore
 token = "token"
 
-[video] # it is mandatory for every module except client only
+[video] # standalone client and server uses, others ignore
 link = "https::///www.youtube.com/something"
 second_link = "https::///www.youtube.com/something" # optional
 
 [server] # client only mandatory, others would ignore.
 link = "http://127.0.0.1:8080"
+
+[server_settings] # server uses, others ignore
+token_db = "token.db"
+port = 8888
 ```
 
 Both LastFM and ListenBrainz are optional. You can use one or both depending however you want.
+
+LastFM username and password only used once to receive the ```session_key``` and is not stored. Only LastFM session_key and ListenBrainz token are stored on server side which can be seen in the [migration sql](migrations/20210525000135_table.sql). 
 
 ## Usage
 
@@ -96,10 +122,11 @@ docker pull gokberkkocak/lofigirl
 
 The default entry point of the Docker image is the server module.
 
-Use ```-v``` to pass your configuration file to the container and ```-p``` for port arrangement.
+Use ```-v``` to pass your configuration file and token db file to the container and ```-p``` for port arrangement.
 
 ```
-docker run -d -v /path/to/your/config.toml:/config.toml -p 8888:8888 gokberkkocak/lofigirl:latest 
+docker run -d -v /path/to/config.toml:/config.toml \
+              -v /path/to/token.db:/token.db -p 8888:8888 gokberkkocak/lofigirl:latest 
 ```
 To use with other modules, use ``--entrypoint`` flag.
 

@@ -1,6 +1,8 @@
-[lastfm]
+[lastfm_api]
 api_key = "api_key"
 api_secret = "api_secret"
+
+[lastfm]
 username = "username"
 password = "password"
 
@@ -12,4 +14,8 @@ link = "https::///www.youtube.com/something"
 second_link = "https::///www.youtube.com/something"
 
 [server]
-link = "http://127.0.0.1:8080"
+link = "http://127.0.0.1:8888"
+
+[server_settings]
+token_db = "token.db"
+port = 8888
