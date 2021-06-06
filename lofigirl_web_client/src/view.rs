@@ -50,7 +50,7 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
                 match &model.lastfm_config {
                     Some(l) => {
                         div![
-                            format!("Info stored for {}", l.username),
+                            format!("Stored LastFM session_key:  {}", l.session_key),
                             button!["CLEAN", ev(Ev::Click, |_| Msg::CleanLastFM),],
                         ]
                     }
@@ -70,20 +70,6 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
                                     At::Placeholder => "Password"
                                 },
                             ]],
-                            div![input![
-                                el_ref(&model.lastfm_form.api_key_input),
-                                attrs! {
-                                    At::Type => "password",
-                                    At::Placeholder => "api_key"
-                                },
-                            ]],
-                            div![input![
-                                el_ref(&model.lastfm_form.api_secret_input),
-                                attrs! {
-                                    At::Type => "password",
-                                    At::Placeholder => "api_secret"
-                                },
-                            ]],
                             div![button![
                                 "Submit",
                                 ev(Ev::Click, |_| Msg::LastFMFormSubmitted),
@@ -95,9 +81,9 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
             let listenbrainz = div![
                 div!["ListenBrainz"],
                 match &model.listenbrainz_config {
-                    Some(_) => {
+                    Some(t) => {
                         div![
-                            "A token is registered",
+                            format!("Stored LastFM session_key:  {}", t.token),
                             button!["CLEAN", ev(Ev::Click, |_| Msg::CleanListenbrainz),],
                         ]
                     }
@@ -144,7 +130,22 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
                     }
                 }
             ];
-            div![div![lastfm], div![listenbrainz], div![server]]
+
+            let token = div![
+                div!["Session Info"],
+                match &model.session_token {
+                    Some(s) => {
+                        div![
+                            format!("Using session token {}", s),
+                            button!["CLEAN", ev(Ev::Click, |_| Msg::CleanToken),],
+                        ]
+                    }
+                    None => {
+                        div!["No session"]
+                    }
+                }
+            ];
+            div![div![lastfm], div![listenbrainz], div![server], div![token]]
         }
     };
     nodes![top, body]
