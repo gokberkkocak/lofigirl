@@ -10,7 +10,7 @@ pub struct TokenDB {
 impl TokenDB {
     pub async fn new(filename: &str) -> Result<Self> {
         let token_db = TokenDB {
-            pool: SqlitePool::connect(&std::env::var(filename)?).await?,
+            pool: SqlitePool::connect(&format!("sqlite:{}",filename)).await?,
         };
         Ok(token_db)
     }

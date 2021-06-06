@@ -2,7 +2,7 @@ use crate::config::Config;
 use anyhow::Result;
 use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::{config::ConfigError, track::Track};
-use thiserror::Error;
+
 #[cfg(not(feature = "standalone"))]
 use {
     crate::config::TokenConfig,
@@ -23,7 +23,10 @@ use {
 };
 
 #[cfg(feature = "standalone")]
-use {lofigirl_shared_listen::listener::Listener, lofigirl_sys::image::ImageProcessor, url::Url};
+use {
+    lofigirl_shared_listen::listener::Listener, lofigirl_sys::image::ImageProcessor,
+    thiserror::Error, url::Url,
+};
 #[cfg(feature = "notify")]
 use {notify_rust::Notification, notify_rust::Timeout};
 
@@ -44,199 +47,6 @@ pub struct Worker {
 }
 
 impl Worker {
-    #[cfg(feature = "standalone")]
-    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
-        let mut config_changed = false;
-        let video_url = if second {
-            Url::parse(
-                &config
-                    .video
-                    .as_ref()
-                    .ok_or(ConfigError::EmptyVideoConfig)?
-                    .second_link
-                    .as_ref()
-                    .ok_or(WorkerError::_MissingSecondVideoLink)?,
-            )?
-        } else {
-            Url::parse(
-                &config
-                    .video
-                    .as_ref()
-                    .ok_or(ConfigError::EmptyVideoConfig)?
-                    .link,
-            )?
-        };
-        let image_proc = ImageProcessor::new(video_url)?;
-        let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
-            if let Some(api) = &lastfm.api {
-                config_changed = true;
-                Some(Listener::convert_client_to_session(api, &lastfm.client)?)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        let mut listener = Listener::new();
-        if let Some(lastfm) = &mut config.lastfm {
-            if let Some(session) = lastfm_session_config {
-                lastfm.client = LastFMClientConfig::SessionAuth(session.to_owned());
-                if let Some(api) = &lastfm.api {
-                    listener
-                        .set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
-                }
-            }
-        }
-        if let Some(listenbrainz) = &config.listenbrainz {
-            listener.set_listenbrainz_listener(listenbrainz)?;
-        }
-        Ok((
-            Worker {
-                listener,
-                image_proc,
-                prev_track_with_count: None,
-            },
-            config_changed,
-        ))
-    }
-
-    #[cfg(not(feature = "standalone"))]
-    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
-        let mut config_changed = false;
-        let client = Client::new();
-        let base_url = config
-            .server
-            .as_ref()
-            .ok_or(ConfigError::EmptyServerConfig)?
-            .link
-            .as_str();
-
-        let token_config = config.session.take();
-        let token = match token_config {
-            Some(token) => {
-                token.token
-            }
-            None => {
-                let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
-                    match &lastfm.client {
-                        lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => {
-                            config_changed = config_changed || true;
-                            Some(
-                                Worker::get_session(
-                                    &client,
-                                    p,
-                                    &config
-                                        .server
-                                        .as_ref()
-                                        .ok_or(ConfigError::EmptyServerConfig)?
-                                        .link
-                                        .as_str(),
-                                )
-                                .await?,
-                            )
-                        }
-                        lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => {
-                            Some(s.clone())
-                        }
-                    }
-                } else {
-                    config_changed = false;
-                    None
-                };
-                let lastfm_session_key = if let Some(s) = lastfm_session_config {
-                    if let Some(l) = &mut config.lastfm {
-                        l.client = LastFMClientConfig::SessionAuth(s.to_owned());
-                    }
-                    Some(s.session_key)
-                } else {
-                    None
-                };
-                let listenbrainz_token = if let Some(l) = &config.listenbrainz {
-                    Some(l.token.to_owned())
-                } else {
-                    None
-                };
-                let token =
-                    Worker::get_token(&client, lastfm_session_key, listenbrainz_token, base_url)
-                        .await?;
-                {
-                    config_changed = config_changed || true;
-                    config.session = Some(TokenConfig {
-                        token: token.clone(),
-                    });
-                }
-                token
-            }
-        };
-        let track_request_url = format!(
-            "{}{}/{}",
-            base_url,
-            TRACK_END_POINT,
-            if second {
-                &SLEEP_TRACK_API_END_POINT
-            } else {
-                &CHILL_TRACK_API_END_POINT
-            }
-        );
-        let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
-        Ok((
-            Worker {
-                client,
-                track_request_url,
-                track_send_url,
-                token,
-                prev_track_with_count: None,
-            },
-            config_changed,
-        ))
-    }
-
-    #[cfg(not(feature = "standalone"))]
-    pub async fn get_track(&self) -> Result<Track> {
-        let response = self.client.get(&self.track_request_url).send().await?;
-        let content = response.text().await?;
-        let track: Track = serde_json::from_str(&content)?;
-        Ok(track)
-    }
-
-    #[cfg(not(feature = "standalone"))]
-    async fn get_session(
-        client: &Client,
-        password_config: &LastFMClientPasswordConfig,
-        base_url: &str,
-    ) -> Result<LastFMClientSessionConfig> {
-        let session_response = client
-            .post(&format!("{}{}", base_url, SESSION_END_POINT))
-            .json(&SessionRequest {
-                password_config: password_config.clone(),
-            })
-            .send()
-            .await?
-            .json::<SessionResponse>()
-            .await?;
-        Ok(session_response.session_config)
-    }
-
-    #[cfg(not(feature = "standalone"))]
-    async fn get_token(
-        client: &Client,
-        lastfm_session_key: Option<String>,
-        listenbrainz_token: Option<String>,
-        base_url: &str,
-    ) -> Result<String> {
-        let token_response = client
-            .post(&format!("{}{}", base_url, TOKEN_END_POINT))
-            .json(&TokenRequest {
-                lastfm_session_key,
-                listenbrainz_token,
-            })
-            .send()
-            .await?
-            .json::<TokenResponse>()
-            .await?;
-        Ok(token_response.token)
-    }
-
     pub async fn work(&mut self) -> bool {
         match self.fragile_work().await {
             Ok(_) => true,
@@ -245,20 +55,6 @@ impl Worker {
                 false
             }
         }
-    }
-
-    #[cfg(not(feature = "standalone"))]
-    async fn post_track(&self, track: &Track, action: Action) -> Result<()> {
-        self.client
-            .post(&self.track_send_url)
-            .json(&ScrobbleRequest {
-                action,
-                track: track.to_owned(),
-                token: self.token.to_owned(),
-            })
-            .send()
-            .await?;
-        Ok(())
     }
 
     async fn fragile_work(&mut self) -> Result<()> {
@@ -321,6 +117,209 @@ impl Worker {
     }
 }
 
+#[cfg(feature = "standalone")]
+impl Worker {
+    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+        let mut config_changed = false;
+        let video_url = if second {
+            Url::parse(
+                &config
+                    .video
+                    .as_ref()
+                    .ok_or(ConfigError::EmptyVideoConfig)?
+                    .second_link
+                    .as_ref()
+                    .ok_or(WorkerError::MissingSecondVideoLink)?,
+            )?
+        } else {
+            Url::parse(
+                &config
+                    .video
+                    .as_ref()
+                    .ok_or(ConfigError::EmptyVideoConfig)?
+                    .link,
+            )?
+        };
+        let image_proc = ImageProcessor::new(video_url)?;
+        let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
+            if let Some(api) = &lastfm.api {
+                config_changed = true;
+                Some(Listener::convert_client_to_session(api, &lastfm.client)?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let mut listener = Listener::new();
+        if let Some(lastfm) = &mut config.lastfm {
+            if let Some(session) = lastfm_session_config {
+                lastfm.client = LastFMClientConfig::SessionAuth(session.to_owned());
+                if let Some(api) = &lastfm.api {
+                    listener
+                        .set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
+                }
+            }
+        }
+        if let Some(listenbrainz) = &config.listenbrainz {
+            listener.set_listenbrainz_listener(listenbrainz)?;
+        }
+        Ok((
+            Worker {
+                listener,
+                image_proc,
+                prev_track_with_count: None,
+            },
+            config_changed,
+        ))
+    }
+}
+
+#[cfg(not(feature = "standalone"))]
+impl Worker {
+    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+        let mut config_changed = false;
+        let client = Client::new();
+        let base_url = config
+            .server
+            .as_ref()
+            .ok_or(ConfigError::EmptyServerConfig)?
+            .link
+            .as_str();
+        let token_config = config.session.take();
+        let token = match token_config {
+            Some(token) => token.token,
+            None => {
+                let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
+                    match &lastfm {
+                        lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => {
+                            config_changed = config_changed || true;
+                            Some(
+                                Worker::get_session(
+                                    &client,
+                                    p,
+                                    &config
+                                        .server
+                                        .as_ref()
+                                        .ok_or(ConfigError::EmptyServerConfig)?
+                                        .link
+                                        .as_str(),
+                                )
+                                .await?,
+                            )
+                        }
+                        lofigirl_shared_common::config::LastFMClientConfig::SessionAuth(s) => {
+                            Some(s.clone())
+                        }
+                    }
+                } else {
+                    None
+                };
+                let lastfm_session_key = if let Some(s) = lastfm_session_config {
+                    if let Some(l) = &mut config.lastfm {
+                        *l = LastFMClientConfig::SessionAuth(s.to_owned());
+                    }
+                    Some(s.session_key)
+                } else {
+                    None
+                };
+                let listenbrainz_token = if let Some(l) = &config.listenbrainz {
+                    Some(l.token.to_owned())
+                } else {
+                    None
+                };
+                let token =
+                    Worker::get_token(&client, lastfm_session_key, listenbrainz_token, base_url)
+                        .await?;
+                {
+                    config_changed = config_changed || true;
+                    config.session = Some(TokenConfig {
+                        token: token.clone(),
+                    });
+                }
+                token
+            }
+        };
+        let track_request_url = format!(
+            "{}{}/{}",
+            base_url,
+            TRACK_END_POINT,
+            if second {
+                &SLEEP_TRACK_API_END_POINT
+            } else {
+                &CHILL_TRACK_API_END_POINT
+            }
+        );
+        let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
+        Ok((
+            Worker {
+                client,
+                track_request_url,
+                track_send_url,
+                token,
+                prev_track_with_count: None,
+            },
+            config_changed,
+        ))
+    }
+
+    async fn get_token(
+        client: &Client,
+        lastfm_session_key: Option<String>,
+        listenbrainz_token: Option<String>,
+        base_url: &str,
+    ) -> Result<String> {
+        let token_response = client
+            .post(&format!("{}{}", base_url, TOKEN_END_POINT))
+            .json(&TokenRequest {
+                lastfm_session_key,
+                listenbrainz_token,
+            })
+            .send()
+            .await?
+            .json::<TokenResponse>()
+            .await?;
+        Ok(token_response.token)
+    }
+
+    async fn post_track(&self, track: &Track, action: Action) -> Result<()> {
+        self.client
+            .post(&self.track_send_url)
+            .json(&ScrobbleRequest {
+                action,
+                track: track.to_owned(),
+                token: self.token.to_owned(),
+            })
+            .send()
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_track(&self) -> Result<Track> {
+        let response = self.client.get(&self.track_request_url).send().await?;
+        let content = response.text().await?;
+        let track: Track = serde_json::from_str(&content)?;
+        Ok(track)
+    }
+
+    async fn get_session(
+        client: &Client,
+        password_config: &LastFMClientPasswordConfig,
+        base_url: &str,
+    ) -> Result<LastFMClientSessionConfig> {
+        let session_response = client
+            .post(&format!("{}{}", base_url, SESSION_END_POINT))
+            .json(&SessionRequest {
+                password_config: password_config.clone(),
+            })
+            .send()
+            .await?
+            .json::<SessionResponse>()
+            .await?;
+        Ok(session_response.session_config)
+    }
+}
+
 struct TrackWithCount {
     pub track: Track,
     pub count: usize,
@@ -332,8 +331,9 @@ impl TrackWithCount {
     }
 }
 
+#[cfg(feature = "standalone")]
 #[derive(Error, Debug)]
 pub enum WorkerError {
     #[error("Second video link cannot be found on config file.")]
-    _MissingSecondVideoLink,
+    MissingSecondVideoLink,
 }

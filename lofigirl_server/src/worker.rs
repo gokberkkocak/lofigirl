@@ -29,7 +29,7 @@ impl ServerWorker {
             None
         };
         let state =
-            web::Data::new(AppState::new(config.lastfmapi.clone(), &config.token_db).await?);
+            web::Data::new(AppState::new(config.lastfm_api.clone(), &config.token_db).await?);
         Ok(ServerWorker {
             main_image_proc,
             second_image_proc,

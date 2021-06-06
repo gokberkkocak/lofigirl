@@ -7,7 +7,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
     pub video: VideoConfig,
-    pub lastfmapi: Option<LastFMApiConfig>,
+    pub lastfm_api: Option<LastFMApiConfig>,
     #[serde(default = "default_port")]
     pub port: u32,
     #[serde(default = "default_token_db")]

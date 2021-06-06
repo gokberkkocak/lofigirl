@@ -2,14 +2,15 @@ use std::path::Path;
 
 use anyhow::Result;
 use lofigirl_shared_common::config::{
-    ConfigError, LastFMConfig, ListenBrainzConfig, ServerConfig, VideoConfig,
+    ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig, VideoConfig,
 };
 use serde::{Deserialize, Serialize};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub lastfm: Option<LastFMConfig>,
+    pub lastfm: Option<LastFMClientConfig>,
+    pub lastfm_api: Option<LastFMApiConfig>,
     pub listenbrainz: Option<ListenBrainzConfig>,
     pub session: Option<TokenConfig>,
     pub video: Option<VideoConfig>,
