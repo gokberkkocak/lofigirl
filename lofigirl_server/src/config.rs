@@ -1,24 +1,14 @@
 use std::path::Path;
 
 use anyhow::Result;
-use lofigirl_shared_common::config::{LastFMApiConfig, VideoConfig};
+use lofigirl_shared_common::config::{LastFMApiConfig, ServerSettingsConfig, VideoConfig};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
     pub video: VideoConfig,
     pub lastfm_api: Option<LastFMApiConfig>,
-    #[serde(default = "default_port")]
-    pub port: u32,
-    #[serde(default = "default_token_db")]
-    pub token_db: String,
-}
-
-fn default_port() -> u32 {
-    8888
-}
-fn default_token_db() -> String {
-    String::from("token.db")
+    pub server_settings: ServerSettingsConfig,
 }
 
 impl ServerConfig {

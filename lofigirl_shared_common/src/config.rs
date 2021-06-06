@@ -47,6 +47,12 @@ pub struct ServerConfig {
     pub link: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ServerSettingsConfig {
+    pub port: u32,
+    pub token_db: String,
+}
+
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("Neither LastFM nor Listenbrainz config is given.")]

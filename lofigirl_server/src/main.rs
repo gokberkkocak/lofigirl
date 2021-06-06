@@ -34,5 +34,5 @@ async fn main() -> std::io::Result<()> {
     actix_rt::spawn(async move {
         worker.loop_work().await;
     });
-    LofiServer::start(state, config.port).await
+    LofiServer::start(state, config.server_settings.port).await
 }

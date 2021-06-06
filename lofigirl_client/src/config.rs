@@ -1,9 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use lofigirl_shared_common::config::{
-    ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig, VideoConfig,
-};
+use lofigirl_shared_common::config::{ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig, ServerSettingsConfig, VideoConfig};
 use serde::{Deserialize, Serialize};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 
@@ -15,6 +13,8 @@ pub struct Config {
     pub session: Option<TokenConfig>,
     pub video: Option<VideoConfig>,
     pub server: Option<ServerConfig>,
+    #[allow(dead_code)]
+    pub server_settings: Option<ServerSettingsConfig>,
 }
 
 impl Config {
@@ -41,7 +41,11 @@ impl Config {
 
     pub async fn to_toml(&self, filename: &Path) -> Result<()> {
         let contents = toml::to_string(self)?;
-        let mut buffer = OpenOptions::new().append(false).open(filename).await?;
+        let mut buffer = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(filename)
+            .await?;
         buffer.write_all(contents.as_bytes()).await?;
         Ok(())
     }
