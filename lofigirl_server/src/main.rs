@@ -1,5 +1,6 @@
 mod config;
 mod server;
+mod session;
 mod worker;
 
 use server::LofiServer;
@@ -16,9 +17,6 @@ struct Opt {
     /// Configuration toml file.
     #[structopt(short, long, default_value = "config.toml")]
     config: PathBuf,
-    /// Configuration toml file.
-    #[structopt(short, long, default_value = "8888")]
-    port: u32,
     /// Only provide information for the first given link.
     #[structopt(short, long)]
     only_first: bool,
@@ -30,10 +28,11 @@ async fn main() -> std::io::Result<()> {
     let config = ServerConfig::from_toml(&opt.config)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     let mut worker = ServerWorker::new(&config, opt.only_first)
+        .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     let state = worker.state.clone();
     actix_rt::spawn(async move {
         worker.loop_work().await;
     });
-    LofiServer::start(state, opt.port).await
+    LofiServer::start(state, config.server_settings.port).await
 }

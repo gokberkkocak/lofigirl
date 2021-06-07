@@ -1,6 +1,6 @@
 [package]
 name = "lofigirl_shared_listen"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Gokberk Kocak <gokberkkocak@gmail.com>"]
 edition = "2018"
 
@@ -13,6 +13,3 @@ rustfm-scrobble = "1.1"
 listenbrainz = "0.3"
 anyhow = "1.0"
 thiserror = "1.0"
-
-[features]
-notify = ["notify-rust"]

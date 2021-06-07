@@ -13,7 +13,7 @@ pub struct ServerWorker {
 }
 
 impl ServerWorker {
-    pub fn new(config: &ServerConfig, only_first: bool) -> Result<ServerWorker> {
+    pub async fn new(config: &ServerConfig, only_first: bool) -> Result<ServerWorker> {
         let main_video_url = Url::parse(&config.video.link)?;
         let main_image_proc = ImageProcessor::new(main_video_url)?;
         let second_image_proc = if !only_first {
@@ -28,7 +28,8 @@ impl ServerWorker {
         } else {
             None
         };
-        let state = web::Data::new(AppState::new());
+        let state =
+            web::Data::new(AppState::new(config.lastfm_api.clone(), &config.server_settings.token_db).await?);
         Ok(ServerWorker {
             main_image_proc,
             second_image_proc,

@@ -1,25 +1,39 @@
+use crate::session::TokenDB;
 use actix_cors::Cors;
 use actix_http::http::StatusCode;
 use actix_web::{web, App, HttpServer};
 use actix_web::{HttpResponse, Result};
+use lofigirl_shared_common::api::{
+    ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse,
+};
+use lofigirl_shared_common::config::{LastFMApiConfig, LastFMClientConfig};
+use lofigirl_shared_common::{track::Track, CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT};
+use lofigirl_shared_common::{
+    HEALTH_END_POINT, SEND_END_POINT, LASTFM_SESSION_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
+};
 use lofigirl_shared_listen::listener::Listener;
-use lofigirl_shared_common::api::SendInfo;
-use lofigirl_shared_common::{track::Track, CHILL_API_END_POINT, SLEEP_API_END_POINT};
 use parking_lot::Mutex;
 use serde::Serialize;
 use thiserror::Error;
 
 pub struct AppState {
+    pub lastfm_api: Mutex<Option<LastFMApiConfig>>,
     pub main_track: Mutex<Option<Track>>,
     pub second_track: Mutex<Option<Track>>,
+    pub token_db: Mutex<TokenDB>,
 }
 
 impl AppState {
-    pub fn new() -> AppState {
-        AppState {
+    pub async fn new(
+        api: Option<LastFMApiConfig>,
+        token_db_file: &str,
+    ) -> anyhow::Result<AppState> {
+        Ok(AppState {
+            lastfm_api: Mutex::new(api),
             main_track: Mutex::new(None),
             second_track: Mutex::new(None),
-        }
+            token_db: Mutex::new(TokenDB::new(token_db_file).await?),
+        })
     }
 }
 
@@ -29,7 +43,7 @@ async fn get_main(data: web::Data<AppState>) -> Result<HttpResponse> {
     if let Some(track) = track {
         Ok(HttpResponse::Ok().json(track))
     } else {
-        Ok(HttpResponse::NotFound().json(WebTrackError::CannotGiveTrack))
+        Ok(HttpResponse::NotFound().json(ServerResponseError::TrackNotAvailable))
     }
 }
 
@@ -39,19 +53,29 @@ async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
     if let Some(track) = track {
         Ok(HttpResponse::Ok().json(track))
     } else {
-        Ok(HttpResponse::NotFound().json(WebTrackError::CannotGiveTrack))
+        Ok(HttpResponse::NotFound().json(ServerResponseError::TrackNotAvailable))
     }
 }
 
-async fn send(_data: web::Data<AppState>, info: web::Json<SendInfo>) -> Result<HttpResponse> {
+async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Result<HttpResponse> {
     let info = info.into_inner();
     let mut listener = Listener::new();
-    if let Some(lastfm) = info.lastfm {
-        listener.set_lastfm_listener(&lastfm).map_err(|e| {
-            actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR)
-        })?;
+    let token_db = data.token_db.lock();
+    let api = data.lastfm_api.lock();
+    let (lfm, lb) = token_db
+        .get_info_from_token(&info.token)
+        .await
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    if let Some(lastfm_client_session) = lfm {
+        if let Some(api) = &*api {
+            listener
+                .set_lastfm_listener(api, &LastFMClientConfig::SessionAuth(lastfm_client_session))
+                .map_err(|e| {
+                    actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR)
+                })?;
+        }
     }
-    if let Some(listenbrainz) = info.listenbrainz {
+    if let Some(listenbrainz) = lb {
         listener
             .set_listenbrainz_listener(&listenbrainz)
             .map_err(|e| {
@@ -73,6 +97,38 @@ async fn send(_data: web::Data<AppState>, info: web::Json<SendInfo>) -> Result<H
     Ok(HttpResponse::Ok().finish())
 }
 
+async fn session(
+    data: web::Data<AppState>,
+    info: web::Json<SessionRequest>,
+) -> Result<HttpResponse> {
+    let info = info.into_inner();
+    let api = data.lastfm_api.lock();
+    if let Some(api) = &*api {
+        let session_config = Listener::convert_client_to_session(
+            api,
+            &LastFMClientConfig::PasswordAuth(info.password_config),
+        )
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+        Ok(HttpResponse::Ok().json(SessionResponse { session_config }))
+    } else {
+        Ok(HttpResponse::NotFound().json(ServerResponseError::APINotAvailable))
+    }
+}
+
+async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) -> Result<HttpResponse> {
+    let info = info.into_inner();
+    let token_db = data.token_db.lock();
+    let token = token_db
+        .get_or_generate_token(&info.lastfm_session_key, &info.listenbrainz_token)
+        .await
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    Ok(HttpResponse::Ok().json(TokenResponse { token }))
+}
+
+async fn health() -> Result<HttpResponse> {
+    Ok(HttpResponse::Ok().finish())
+}
+
 pub struct LofiServer;
 
 impl LofiServer {
@@ -84,14 +140,17 @@ impl LofiServer {
                 .wrap(cors)
                 .app_data(data.clone()) // <- register the created data
                 .route(
-                    &format!("/track/{}", CHILL_API_END_POINT),
+                    &format!("{}{}", TRACK_END_POINT, CHILL_TRACK_API_END_POINT),
                     web::get().to(get_main),
                 )
                 .route(
-                    &format!("/track/{}", SLEEP_API_END_POINT),
+                    &format!("{}{}", TRACK_END_POINT, SLEEP_TRACK_API_END_POINT),
                     web::get().to(get_second),
                 )
-                .route("/send", web::post().to(send))
+                .route(SEND_END_POINT, web::post().to(send))
+                .route(LASTFM_SESSION_END_POINT, web::post().to(session))
+                .route(TOKEN_END_POINT, web::post().to(token))
+                .route(HEALTH_END_POINT, web::get().to(health))
         })
         .bind(format!("0.0.0.0:{}", port))?
         // .bind(format!("127.0.0.1:{}", port))?
@@ -101,7 +160,9 @@ impl LofiServer {
 }
 
 #[derive(Error, Debug, Serialize)]
-pub enum WebTrackError {
-    #[error("OCR text cannot be split.")]
-    CannotGiveTrack,
+pub enum ServerResponseError {
+    #[error("Track not available.")]
+    TrackNotAvailable,
+    #[error("LastFM API is not available")]
+    APINotAvailable,
 }

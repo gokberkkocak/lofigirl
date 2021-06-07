@@ -1,17 +1,20 @@
 use std::path::Path;
 
 use anyhow::Result;
-use lofigirl_shared_common::config::{
-    ConfigError, LastFMConfig, ListenBrainzConfig, ServerConfig, VideoConfig,
-};
-use serde::Deserialize;
+use lofigirl_shared_common::config::{ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig, ServerSettingsConfig, VideoConfig};
+use serde::{Deserialize, Serialize};
+use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub lastfm: Option<LastFMConfig>,
+    pub lastfm: Option<LastFMClientConfig>,
+    pub lastfm_api: Option<LastFMApiConfig>,
     pub listenbrainz: Option<ListenBrainzConfig>,
+    pub session: Option<TokenConfig>,
     pub video: Option<VideoConfig>,
     pub server: Option<ServerConfig>,
+    #[allow(dead_code)]
+    pub server_settings: Option<ServerSettingsConfig>,
 }
 
 impl Config {
@@ -35,4 +38,19 @@ impl Config {
             .ok_or(ConfigError::EmptyServerConfig)?;
         Ok(config)
     }
+
+    pub async fn to_toml(&self, filename: &Path) -> Result<()> {
+        let contents = toml::to_string(self)?;
+        let mut buffer = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(filename)
+            .await?;
+        buffer.write_all(contents.as_bytes()).await?;
+        Ok(())
+    }
+}
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TokenConfig {
+    pub token: String,
 }

@@ -1,6 +1,6 @@
 [package]
 name = "lofigirl_sys"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Gokberk Kocak <gokberkkocak@gmail.com>"]
 edition = "2018"
 
@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 opencv = { version = "0.53", features = ["clang-runtime"]}
-rustube = "0.3.0-beta.0"
+rustube = "0.3.0-beta.1"
 leptess = "0.13"
 anyhow = "1.0"
 thiserror = "1.0"

@@ -4,22 +4,21 @@ Lofi Girl Scrobbler helps you scrobble (mark as listened) Lofi Girl (previously 
 
 # Getting Started
 
-
-
 ## Pre-Requisites 
 
-This project uses ```opencv``` library to capture\process images and ```tesseract-ocr``` to make an image to text analysis.
+This project uses ```opencv``` library to capture/process images and ```tesseract-ocr``` to make an image to text analysis.
 
 ## Modules
 
 This project includes different modules and several features which you can choose according to your preference. The list of binaries which are compiled on releases are
 
+- Lofigirl Server - A http broadcasting server module which does the image 
+processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It also keeps user sessions and sends the listening information to multiple backends.
 - Lofigirl Client - Includes Optional multi-os notification system.
-    - Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to retrieve information from the ```server``` module.
-    - Standalone - The standalone version which runs the images processing and ocr by itself and submits the data on a regular interval. Requires all the dependencies to be present in the system.
-- Lofigirl Server - The http server module which does the image 
-processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system.
-- Lofigirl Web Client - Compiled to wasm, can even run on a browser. 
+    - Default Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to communicate with the ```server``` module.
+    - Standalone - The standalone version which does the images processing/OCR and sends the listening information data on a regular interval. Requires all the dependencies to be present in the system.
+- Lofigirl Web Client - Compiled to wasm, runs on browser and communicates with the ```server``` side.
+
 ## Installing all dependencies
 
 ### Arch Linux
@@ -48,11 +47,29 @@ brew install opencv tesseract leptonica
 
 One of the crates [rustube](https://lib.rs/crates/rustube) in the project requires nightly compiler so the project only compiles on nightly compiler at the moment.
 
+Server side uses ```sqlx``` which does compile time query checking so a db must be present on the compilation time. To set the compile time db and run migrations;
+
+```
+cargo install sqlx-cli
+export DATABASE_URL=sqlite:token.db
+sqlx db create 
+sqlx migrate run
+```
+
+Instead of ```sqlx-cli```, ```sqlite3``` also works to create the db. However, the compilation still requires the ```DATABASE_URL``` environment variable.
+
+```
+sqlite3 token.db < migrations/20210525000135_table.sql 
+export DATABASE_URL=sqlite:token.db
+```
+
+Compile all;
+
 ```
 cargo build --release
 ```
 
-Check [server](lofigirl_server/README.md) and/or [client](lofigirl_client/README.md) for more information.
+Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) and [web-client](lofigirl_web_client/README.md) for more information on specific module.
 
 ## Configuration
 
@@ -64,23 +81,31 @@ All of the configuration can be put into a toml file like in the [example](https
 
 ```toml
 [lastfm] # client optional - server ignore
+username = "username" # will be removed after first run and turned into session_key 
+password = "password" # will be removed after first run and turned into session_key
+
+[lastfm_api] #standalone client and server use. The others ignore
 api_key = "api_key"
 api_secret = "api_secret"
-username = "username"
-password = "password"
 
 [listenbrainz] # client optional - server ignore
 token = "token"
 
-[video] # it is mandatory for every module except client only
+[video] # standalone client and server use, others ignore
 link = "https::///www.youtube.com/something"
 second_link = "https::///www.youtube.com/something" # optional
 
 [server] # client only mandatory, others would ignore.
 link = "http://127.0.0.1:8080"
+
+[server_settings] # server uses, others ignore
+token_db = "token.db"
+port = 8888
 ```
 
 Both LastFM and ListenBrainz are optional. You can use one or both depending however you want.
+
+LastFM username and password only used once to receive the ```session_key``` and is not stored. Only LastFM session_key and ListenBrainz token are stored on server side which can be seen in the [migration sql](migrations/20210525000135_table.sql). 
 
 ## Usage
 
@@ -96,10 +121,11 @@ docker pull gokberkkocak/lofigirl
 
 The default entry point of the Docker image is the server module.
 
-Use ```-v``` to pass your configuration file to the container and ```-p``` for port arrangement.
+Use ```-v``` to pass your configuration file and token db file to the container and ```-p``` for port arrangement.
 
 ```
-docker run -d -v /path/to/your/config.toml:/config.toml -p 8888:8888 gokberkkocak/lofigirl:latest 
+docker run -d -v /path/to/config.toml:/config.toml \
+              -v /path/to/token.db:/token.db -p 8888:8888 gokberkkocak/lofigirl:latest 
 ```
 To use with other modules, use ``--entrypoint`` flag.
 

@@ -11,8 +11,6 @@
 
 ### Default client
 
-It's possible to run default client with stable compiler.
-
 ```
 cargo build --release
 ```
@@ -39,10 +37,12 @@ cargo build --release --features notify
 
 ```toml
 [lastfm] # optional - choose one or both
+username = "username" # will be removed after first run and turned into session_key 
+password = "password" # will be removed after first run and turned into session_key
+
+[lastfm_api] #optional for standalone. Normal client uses the server side api key.
 api_key = "api_key"
 api_secret = "api_secret"
-username = "username"
-password = "password"
 
 [listenbrainz] # optional - choose one or both
 token = "token"
