@@ -109,7 +109,7 @@ LastFM username and password only used once to receive the ```session_key``` and
 
 ## Usage
 
-Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) or [web-client]([client](lofigirl_web_client/README.md)) usage on their sections.
+Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) or [web-client](lofigirl_web_client/README.md)) usage in their sections.
 
 ## Docker
 
