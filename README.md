@@ -105,11 +105,11 @@ port = 8888
 
 Both LastFM and ListenBrainz are optional. You can use one or both depending however you want.
 
-LastFM username and password only used once to receive the ```session_key``` and is not stored. Only LastFM session_key and ListenBrainz token are stored on server side which can be seen in the [migration sql](migrations/20210525000135_table.sql). 
+LastFM username and password only used once to receive the ```session_key``` and is not stored. Only LastFM session_key and ListenBrainz token are stored on server side which can be seen in the [server table schema](migrations/20210525000135_table.sql).
 
 ## Usage
 
-Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) or [web-client](lofigirl_web_client/README.md)) usage in their sections.
+Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) or [web-client](lofigirl_web_client/README.md) usage in their sections.
 
 ## Docker
 
