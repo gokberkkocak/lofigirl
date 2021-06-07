@@ -83,7 +83,7 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
                 match &model.listenbrainz_config {
                     Some(t) => {
                         div![
-                            format!("Stored LastFM session_key:  {}", t.token),
+                            format!("Stored ListenBrainz token:  {}", t.token),
                             button!["CLEAN", ev(Ev::Click, |_| Msg::CleanListenbrainz),],
                         ]
                     }
@@ -136,7 +136,7 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
                 match &model.session_token {
                     Some(s) => {
                         div![
-                            format!("Using session token {}", s),
+                            format!("Using session token: {}", s),
                             button!["CLEAN", ev(Ev::Click, |_| Msg::CleanToken),],
                         ]
                     }
@@ -145,7 +145,7 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
                     }
                 }
             ];
-            div![div![lastfm], div![listenbrainz], div![server], div![token]]
+            div![div![server], div![lastfm], div![listenbrainz], div![token]]
         }
     };
     nodes![top, body]

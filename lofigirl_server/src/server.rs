@@ -9,7 +9,7 @@ use lofigirl_shared_common::api::{
 use lofigirl_shared_common::config::{LastFMApiConfig, LastFMClientConfig};
 use lofigirl_shared_common::{track::Track, CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT};
 use lofigirl_shared_common::{
-    HEALTH_END_POINT, SEND_END_POINT, SESSION_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
+    HEALTH_END_POINT, SEND_END_POINT, LASTFM_SESSION_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
 };
 use lofigirl_shared_listen::listener::Listener;
 use parking_lot::Mutex;
@@ -140,15 +140,15 @@ impl LofiServer {
                 .wrap(cors)
                 .app_data(data.clone()) // <- register the created data
                 .route(
-                    &format!("{}/{}", TRACK_END_POINT, CHILL_TRACK_API_END_POINT),
+                    &format!("{}{}", TRACK_END_POINT, CHILL_TRACK_API_END_POINT),
                     web::get().to(get_main),
                 )
                 .route(
-                    &format!("{}/{}", TRACK_END_POINT, SLEEP_TRACK_API_END_POINT),
+                    &format!("{}{}", TRACK_END_POINT, SLEEP_TRACK_API_END_POINT),
                     web::get().to(get_second),
                 )
                 .route(SEND_END_POINT, web::post().to(send))
-                .route(SESSION_END_POINT, web::post().to(session))
+                .route(LASTFM_SESSION_END_POINT, web::post().to(session))
                 .route(TOKEN_END_POINT, web::post().to(token))
                 .route(HEALTH_END_POINT, web::get().to(health))
         })

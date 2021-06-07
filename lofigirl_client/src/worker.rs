@@ -15,7 +15,7 @@ use {
     lofigirl_shared_common::config::LastFMClientPasswordConfig,
     lofigirl_shared_common::config::LastFMClientSessionConfig,
     lofigirl_shared_common::SEND_END_POINT,
-    lofigirl_shared_common::SESSION_END_POINT,
+    lofigirl_shared_common::LASTFM_SESSION_END_POINT,
     lofigirl_shared_common::TOKEN_END_POINT,
     lofigirl_shared_common::TRACK_END_POINT,
     lofigirl_shared_common::{CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT},
@@ -241,7 +241,7 @@ impl Worker {
             }
         };
         let track_request_url = format!(
-            "{}{}/{}",
+            "{}{}{}",
             base_url,
             TRACK_END_POINT,
             if second {
@@ -308,7 +308,7 @@ impl Worker {
         base_url: &str,
     ) -> Result<LastFMClientSessionConfig> {
         let session_response = client
-            .post(&format!("{}{}", base_url, SESSION_END_POINT))
+            .post(&format!("{}{}", base_url, LASTFM_SESSION_END_POINT))
             .json(&SessionRequest {
                 password_config: password_config.clone(),
             })

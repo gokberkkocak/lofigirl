@@ -11,8 +11,8 @@ use lofigirl_shared_common::{
     api::{Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse},
     config::{LastFMClientPasswordConfig, LastFMClientSessionConfig, ListenBrainzConfig},
     track::Track,
-    CHILL_TRACK_API_END_POINT, HEALTH_END_POINT, REGULAR_INTERVAL, SEND_END_POINT,
-    SESSION_END_POINT, SLEEP_TRACK_API_END_POINT, TRACK_END_POINT,
+    CHILL_TRACK_API_END_POINT, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, REGULAR_INTERVAL,
+    SEND_END_POINT, SLEEP_TRACK_API_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
 };
 #[cfg(debug_assertions)]
 use seed::log;
@@ -113,7 +113,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             let password = form.password_input.get().unwrap().value();
 
             let server = model.server_url.clone().unwrap();
-            let url = format!("{}{}", server, SESSION_END_POINT);
+            let url = format!("{}{}", server, LASTFM_SESSION_END_POINT);
 
             orders.perform_cmd(async move {
                 let session_response =
@@ -182,7 +182,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             let server = model.server_url.clone().unwrap();
             let token = model.session_token.clone();
             let token = token.unwrap();
-            let current_track = model.current_track.clone();
+            let current_track = model.current_track.take();
             if let Some(t) = current_track.filter(|t| *t != track) {
                 if count > 3 {
                     let cloned_token = token.clone();
@@ -196,6 +196,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 }
                 count = 0;
             }
+            model.current_track = Some(track.clone());
             let server = model.server_url.clone().unwrap();
             #[cfg(debug_assertions)]
             log!("Count", count);
@@ -231,7 +232,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::CleanToken => {
             model.session_token = None;
             storage::remove_session_token();
-        },
+        }
     }
 }
 
@@ -255,7 +256,7 @@ async fn fetch_session_token(
     lastfm_session_key: Option<String>,
     listenbrainz_token: Option<String>,
 ) -> fetch::Result<TokenResponse> {
-    let url = format!("{}{}", server, SESSION_END_POINT);
+    let url = format!("{}{}", server, TOKEN_END_POINT);
     let token_response: TokenResponse = Request::new(url)
         .method(Method::Post)
         .json(&TokenRequest {
@@ -276,7 +277,7 @@ async fn post_track_action(
     track: Track,
     action: Action,
 ) -> fetch::Result<()> {
-    Request::new(format!("{}/{}", server, SEND_END_POINT))
+    Request::new(format!("{}{}", server, SEND_END_POINT))
         .method(Method::Post)
         .json(&ScrobbleRequest {
             action,
@@ -291,7 +292,7 @@ async fn post_track_action(
 
 async fn fetch_track(server: &str, stream: LofiStream) -> fetch::Result<Track> {
     let url = format!(
-        "{}{}/{}",
+        "{}{}{}",
         server,
         TRACK_END_POINT,
         match stream {
