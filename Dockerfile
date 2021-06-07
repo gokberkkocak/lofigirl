@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY ./ ./
 
+ENV DATABASE_URL=sqlite:token.db
+
 RUN pacman-key --init
 
 RUN pacman --noconfirm -Syu
@@ -11,8 +13,6 @@ RUN pacman --noconfirm -Syu
 RUN pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract clang rustup sqlite
 
 RUN rustup toolchain install nightly
-
-RUN export DATABASE_URL=sqlite:token.db
 
 RUN sqlite3 token.db < migrations/20210525000135_table.sql 
 
