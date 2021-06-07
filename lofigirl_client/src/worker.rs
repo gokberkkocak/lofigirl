@@ -141,10 +141,10 @@ impl Worker {
             )?
         };
         let image_proc = ImageProcessor::new(video_url)?;
-        let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
-            if let Some(api) = &lastfm.api {
+        let lastfm_session_config = if let Some(client) = &config.lastfm {
+            if let Some(api) = &config.lastfm_api {
                 config_changed = true;
-                Some(Listener::convert_client_to_session(api, &lastfm.client)?)
+                Some(Listener::convert_client_to_session(api, client)?)
             } else {
                 None
             }
@@ -152,15 +152,13 @@ impl Worker {
             None
         };
         let mut listener = Listener::new();
-        if let Some(lastfm) = &mut config.lastfm {
             if let Some(session) = lastfm_session_config {
-                lastfm.client = LastFMClientConfig::SessionAuth(session.to_owned());
-                if let Some(api) = &lastfm.api {
+                config.lastfm = Some(LastFMClientConfig::SessionAuth(session.to_owned()));
+                if let Some(api) = &config.lastfm_api {
                     listener
                         .set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
                 }
             }
-        }
         if let Some(listenbrainz) = &config.listenbrainz {
             listener.set_listenbrainz_listener(listenbrainz)?;
         }
