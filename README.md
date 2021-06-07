@@ -4,22 +4,21 @@ Lofi Girl Scrobbler helps you scrobble (mark as listened) Lofi Girl (previously 
 
 # Getting Started
 
-
-
 ## Pre-Requisites 
 
-This project uses ```opencv``` library to capture\process images and ```tesseract-ocr``` to make an image to text analysis.
+This project uses ```opencv``` library to capture/process images and ```tesseract-ocr``` to make an image to text analysis.
 
 ## Modules
 
 This project includes different modules and several features which you can choose according to your preference. The list of binaries which are compiled on releases are
 
+- Lofigirl Server - A http broadcasting server module which does the image 
+processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It also keeps user sessions and sends the listening information to multiple backends.
 - Lofigirl Client - Includes Optional multi-os notification system.
-    - Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to retrieve information from the ```server``` module.
-    - Standalone - The standalone version which runs the images processing and ocr by itself and submits the data on a regular interval. Requires all the dependencies to be present in the system.
-- Lofigirl Server - The http server module which does the image 
-processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system.
-- Lofigirl Web Client - Compiled to wasm, can even run on a browser. 
+    - Default Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to communicate with the ```server``` module.
+    - Standalone - The standalone version which does the images processing/OCR and sends the listening information data on a regular interval. Requires all the dependencies to be present in the system.
+- Lofigirl Web Client - Compiled to wasm, runs on browser and communicates with the ```server``` side.
+
 ## Installing all dependencies
 
 ### Arch Linux
@@ -57,7 +56,7 @@ sqlx db create
 sqlx migrate run
 ```
 
-Instead of ```sqlx-cli```, ```sqlite3``` should also work to create the db but compilation still requires the ```DATABASE_URL``` environment variable.
+Instead of ```sqlx-cli```, ```sqlite3``` also works to create the db. However, the compilation still requires the ```DATABASE_URL``` environment variable.
 
 ```
 sqlite3 token.db < migrations/20210525000135_table.sql 
@@ -70,7 +69,7 @@ Compile all;
 cargo build --release
 ```
 
-Check [server](lofigirl_server/README.md) and/or [client](lofigirl_client/README.md) for more information.
+Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) and [web-client](lofigirl_web_client/README.md) for more information on specific module.
 
 ## Configuration
 
@@ -85,14 +84,14 @@ All of the configuration can be put into a toml file like in the [example](https
 username = "username" # will be removed after first run and turned into session_key 
 password = "password" # will be removed after first run and turned into session_key
 
-[lastfm_api] #standalone client and server uses. The others ignore
+[lastfm_api] #standalone client and server use. The others ignore
 api_key = "api_key"
 api_secret = "api_secret"
 
 [listenbrainz] # client optional - server ignore
 token = "token"
 
-[video] # standalone client and server uses, others ignore
+[video] # standalone client and server use, others ignore
 link = "https::///www.youtube.com/something"
 second_link = "https::///www.youtube.com/something" # optional
 

@@ -13,14 +13,14 @@ sqlx db create
 sqlx migrate run
 ```
 
-or you can use ```sqlite```. DATABASE_URL env is still required for compilation.
+Or you can use ```sqlite```. The environment variable ```DATABASE_URL``` is still required for compilation.
 
 ```
 sqlite3 token.db < migrations/20210525000135_table.sql 
 export DATABASE_URL=sqlite:token.db
 ```
 
-It only compiles on nightly atm.
+It only compiles on nightly rust compiler at the moment. 
 
 ```
 cargo build --release
@@ -42,7 +42,6 @@ second_link = "https::///www.youtube.com/something" # optional
 [server_settings]
 token_db = "token.db"
 port = 8888 
-
 ```
 
 You might keep other config fields in your config files which will be ignored.
@@ -76,7 +75,7 @@ Pull from docker.io.
 podman pull docker.io/gokberkkocak/lofigirl
 ```
 
-Run first time to give a container name and ctrl-c. To create the db, check the beginning of the compilation [section](#compiling).
+Run first time to give a container name and ctrl-c. Then give the configuration file and the db by ```-v``` flag. To create the db, check the beginning of the compilation [section](#compiling).
 
 ```
 podman run --name lofigirl -p 8888:8888 -v /path/to/config.toml:/config.toml \
