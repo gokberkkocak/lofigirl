@@ -34,6 +34,7 @@ struct Model {
     server_url: Option<String>,
     page: Page,
     current_track: Option<Track>,
+    is_scrobbling: bool,
 }
 
 // ------ ------
@@ -56,6 +57,7 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
         page: Page::Root,
         current_track: Default::default(),
         session_token,
+        is_scrobbling: false,
     }
 }
 
@@ -90,6 +92,7 @@ enum Msg {
     CleanToken,
     CleanListenbrainz,
     CleanServer,
+    StartPlaying(LofiStream),
     UpdatePlayingStatus(LofiStream, i32),
     LastFMSessionReceived(LastFMClientSessionConfig),
     UrlChanged(Page),
@@ -138,29 +141,30 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             });
         }
         Msg::UpdatePlayingStatus(stream, count) => {
-            // do request
-            let server = model.server_url.clone().unwrap();
-            let token = model.session_token.clone();
-            let l = match &model.lastfm_config {
-                Some(l) => Some(l.session_key.to_owned()),
-                None => None,
-            };
-            let ls = match &model.listenbrainz_config {
-                Some(l) => Some(l.token.to_owned()),
-                None => None,
-            };
-            orders.perform_cmd(async move {
-                match token {
-                    Some(_) => {
-                        let track = fetch_track(&server, stream).await.unwrap();
-                        Msg::SubmitTrack(track, stream, count)
+            if model.is_scrobbling {
+                let server = model.server_url.clone().unwrap();
+                let token = model.session_token.clone();
+                let l = match &model.lastfm_config {
+                    Some(l) => Some(l.session_key.to_owned()),
+                    None => None,
+                };
+                let ls = match &model.listenbrainz_config {
+                    Some(l) => Some(l.token.to_owned()),
+                    None => None,
+                };
+                orders.perform_cmd(async move {
+                    match token {
+                        Some(_) => {
+                            let track = fetch_track(&server, stream).await.unwrap();
+                            Msg::SubmitTrack(track, stream, count)
+                        }
+                        None => {
+                            let token = fetch_session_token(&server, l, ls).await.unwrap();
+                            Msg::UpdateTokenThenSubmit(token.token, stream, count)
+                        }
                     }
-                    None => {
-                        let token = fetch_session_token(&server, l, ls).await.unwrap();
-                        Msg::UpdateTokenThenSubmit(token.token, stream, count)
-                    }
-                }
-            });
+                });
+            }
         }
         Msg::UrlChanged(p) => {
             model.page = p;
@@ -214,6 +218,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             });
         }
         Msg::StopPlaying => {
+            model.is_scrobbling = false;
             model.current_track = None;
         }
         Msg::LastFMSessionReceived(s) => {
@@ -233,6 +238,10 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             model.session_token = None;
             storage::remove_session_token();
         }
+        Msg::StartPlaying(stream) => {
+            model.is_scrobbling = true;
+            orders.perform_cmd(async move { Msg::UpdatePlayingStatus(stream, 1) });
+        }
     }
 }
 
@@ -240,7 +249,7 @@ async fn fetch_lastfm_session(
     url: &str,
     password_config: LastFMClientPasswordConfig,
 ) -> fetch::Result<SessionResponse> {
-    let session_response: SessionResponse = Request::new(url)
+    let session_response = Request::new(url)
         .method(Method::Post)
         .json(&SessionRequest { password_config })?
         .fetch()
@@ -257,7 +266,7 @@ async fn fetch_session_token(
     listenbrainz_token: Option<String>,
 ) -> fetch::Result<TokenResponse> {
     let url = format!("{}{}", server, TOKEN_END_POINT);
-    let token_response: TokenResponse = Request::new(url)
+    let token_response = Request::new(url)
         .method(Method::Post)
         .json(&TokenRequest {
             lastfm_session_key,
@@ -300,7 +309,7 @@ async fn fetch_track(server: &str, stream: LofiStream) -> fetch::Result<Track> {
             LofiStream::Sleep => SLEEP_TRACK_API_END_POINT,
         }
     );
-    let track: Track = Request::new(url)
+    let track = Request::new(url)
         .method(Method::Get)
         .fetch()
         .await?

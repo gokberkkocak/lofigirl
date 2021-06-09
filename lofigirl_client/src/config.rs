@@ -21,7 +21,7 @@ impl Config {
     pub async fn from_toml(file_name: &Path) -> Result<Config> {
         let file_contents = String::from_utf8(tokio::fs::read(file_name).await?)?;
         let config: Config = toml::from_str(&file_contents)?;
-        (config.lastfm.is_some() && config.listenbrainz.is_some())
+        (config.lastfm.is_some() || config.listenbrainz.is_some())
             .then(|| ())
             .ok_or(ConfigError::EmptyListeners)?;
         #[cfg(feature = "standalone")]

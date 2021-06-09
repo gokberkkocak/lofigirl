@@ -15,31 +15,29 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
         button!["Config", ev(Ev::Click, |_| Msg::UrlChanged(Page::Config)),]
     ],];
     let body = match model.page {
-        Page::Root => match &model.current_track {
-            Some(t) => {
-                div![
-                    div![button![
-                        "STOP scrobbling",
-                        ev(Ev::Click, |_| Msg::StopPlaying),
-                    ]],
-                    div![format!("Current song: {}", t)]
-                ]
+        Page::Root => match &model.is_scrobbling {
+            true => {
+                if let Some(track) = &model.current_track {
+                    div![
+                        div![button![
+                            "STOP scrobbling",
+                            ev(Ev::Click, |_| Msg::StopPlaying),
+                        ]],
+                        div![format!("Current song: {}", track)]
+                    ]
+                } else {
+                    div!["Waiting for the song..."]
+                }
             }
-            None => {
+            false => {
                 div![
                     div![button![
                         "Start scrobbling - CHILL",
-                        ev(Ev::Click, |_| Msg::UpdatePlayingStatus(
-                            LofiStream::Chill,
-                            1
-                        )),
+                        ev(Ev::Click, |_| Msg::StartPlaying(LofiStream::Chill)),
                     ]],
                     div![button![
                         "Start scrobbling - SLEEP",
-                        ev(Ev::Click, |_| Msg::UpdatePlayingStatus(
-                            LofiStream::Sleep,
-                            1
-                        )),
+                        ev(Ev::Click, |_| Msg::StartPlaying(LofiStream::Sleep)),
                     ]]
                 ]
             }

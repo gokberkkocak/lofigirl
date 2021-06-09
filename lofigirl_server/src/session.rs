@@ -20,7 +20,7 @@ impl TokenDB {
         lastfm_session_key: &Option<String>,
         listenbrainz_token: &Option<String>,
     ) -> Result<String> {
-        (lastfm_session_key.is_some() && listenbrainz_token.is_some())
+        (lastfm_session_key.is_some() || listenbrainz_token.is_some())
             .then(|| ())
             .ok_or(ConfigError::EmptyListeners)?;
         let mut conn = self.pool.acquire().await?;
