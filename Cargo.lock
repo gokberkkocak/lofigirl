@@ -2364,9 +2364,9 @@ dependencies = [
 
 [[package]]
 name = "rustube"
-version = "0.3.0-beta.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c703c34a496adc0018f2857c9492dd3f67d3c4bd63237903d9a782377fce59c0"
+checksum = "e6f0af18c583572aef6ab4e03e181796f1c2895819a03c4a794156b7869deebd"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -3089,9 +3089,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.5.0"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83f0c8e7c0addab50b663055baf787d0af7f413a46e6e7fb9559a4e4db7137a5"
+checksum = "0a38d31d7831c6ed7aad00aa4c12d9375fd225a6dd77da1d25b707346319a975"
 dependencies = [
  "autocfg",
  "bytes",
