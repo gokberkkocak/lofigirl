@@ -2364,9 +2364,9 @@ dependencies = [
 
 [[package]]
 name = "rustube"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6f0af18c583572aef6ab4e03e181796f1c2895819a03c4a794156b7869deebd"
+checksum = "93481ca96a458374fb442de57afa4a7fe79652fa7c3ec4c07459499a47aa6d82"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
