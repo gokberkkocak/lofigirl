@@ -1,0 +1,44 @@
+name: Build on Pull Request
+
+on:  
+  pull_request:
+    branches:
+      - master
+
+env:
+  CARGO_TERM_COLOR: always
+  
+jobs:
+  build_server:
+    name: Create server/standalone release builds and upload binaries for linux
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build docker image for one stage
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        target: builder
+        tags:
+          lofigirl:latest
+  build_client:
+    name: Client build and upload binaries
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build release version
+      run: cargo build -p lofigirl_client --features notify
+  build_frontend:
+    name: Build single platform wasm
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build release version
+      run: |
+        cargo install cargo-make
+        cd lofigirl_web_client
+        cargo make build
+        
