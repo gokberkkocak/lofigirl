@@ -1,7 +1,7 @@
 use anyhow::Result;
 use leptess::LepTess;
 use opencv::core::Vector;
-use opencv::core::{Mat, MatTrait, Rect_};
+use opencv::core::{Mat, MatTraitConst, Rect_};
 use opencv::videoio::VideoCapture;
 use opencv::videoio::VideoCaptureTrait;
 use thiserror::Error;
