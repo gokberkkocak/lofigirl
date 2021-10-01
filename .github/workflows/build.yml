@@ -10,7 +10,7 @@ env:
   
 jobs:
   build_server:
-    name: Create server/standalone release builds and upload binaries for linux
+    name: Create server/standalone builds
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -23,12 +23,12 @@ jobs:
         tags:
           lofigirl:latest
   build_client:
-    name: Client build and upload binaries
+    name: Client build
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Build release version
+    - name: Build
       run: cargo build -p lofigirl_client --features notify
   build_frontend:
     name: Build single platform wasm
@@ -36,7 +36,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Build release version
+    - name: Build
       run: |
         cargo install cargo-make
         cd lofigirl_web_client
