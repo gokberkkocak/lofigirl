@@ -315,6 +315,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "attohttpc"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a8bda305457262b339322106c776e3fd21df860018e566eb6a5b1aa4b6ae02d"
+dependencies = [
+ "flate2",
+ "http",
+ "log",
+ "native-tls",
+ "openssl",
+ "serde",
+ "serde_json",
+ "url",
+ "wildmatch",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1465,14 +1482,14 @@ dependencies = [
 
 [[package]]
 name = "listenbrainz"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7881c493da4bd2ad7e2db4a67dbcbedb66d837373b45258d10f37ff517060d6d"
+checksum = "e276c68189e1e0a19b98852fc56099dcae02d69ea9f8b89c7a7d82861c430ebe"
 dependencies = [
+ "attohttpc",
  "serde",
  "serde_json",
  "thiserror",
- "ureq 2.2.0",
 ]
 
 [[package]]
@@ -2409,7 +2426,7 @@ dependencies = [
  "md5",
  "serde",
  "serde_json",
- "ureq 1.5.5",
+ "ureq",
  "wrapped-vec",
 ]
 
@@ -3349,24 +3366,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ureq"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3131cd6cb18488da91da1d10ed31e966f453c06b65bf010d35638456976a3fd7"
-dependencies = [
- "base64",
- "chunked_transfer",
- "log",
- "once_cell",
- "rustls",
- "serde",
- "serde_json",
- "url",
- "webpki",
- "webpki-roots",
-]
-
-[[package]]
 name = "url"
 version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3594,6 +3593,12 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
 ]
+
+[[package]]
+name = "wildmatch"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f44b95f62d34113cf558c93511ac93027e03e9c29a60dd0fd70e6e025c7270a"
 
 [[package]]
 name = "winapi"
