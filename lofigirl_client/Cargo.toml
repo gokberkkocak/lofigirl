@@ -2,7 +2,7 @@
 name = "lofigirl_client"
 version = "0.2.0"
 authors = ["Gokberk Kocak <gokberkkocak@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 lofigirl_sys = { path = "../lofigirl_sys", optional = true }
