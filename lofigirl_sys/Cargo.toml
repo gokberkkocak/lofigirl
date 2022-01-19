@@ -2,13 +2,13 @@
 name = "lofigirl_sys"
 version = "0.2.0"
 authors = ["Gokberk Kocak <gokberkkocak@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
-opencv = { version = "0.61", features = ["clang-runtime"]}
+opencv = { version = "0.62", features = ["clang-runtime"]}
 rustube = "0.3"
 leptess = "0.13"
 anyhow = "1.0"
