@@ -3055,9 +3055,9 @@ dependencies = [
 
 [[package]]
 name = "tesseract-sys"
-version = "0.5.10"
+version = "0.5.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb3dd42dc97d95c1826a5c47f8421a5e7e0919c1d963fef15f8b5545456983e7"
+checksum = "32f885433c23fbe6e22176bbc500025abf0331bd27d1c882f163bb696759bc27"
 dependencies = [
  "bindgen",
  "leptonica-sys",
