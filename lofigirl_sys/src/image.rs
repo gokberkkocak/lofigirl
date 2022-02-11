@@ -7,13 +7,14 @@ use opencv::videoio::VideoCaptureTrait;
 use thiserror::Error;
 use url::Url;
 
-use crate::capture::YoutubeLinkCapture;
+use crate::capture::YoutubeLinkCapturer;
 
 use lofigirl_shared_common::track::Track;
 
 const DPI: i32 = 70;
 
 pub struct ImageProcessor {
+    link_capturer: YoutubeLinkCapturer,
     video_url: Url,
     ocr: LepTess,
     low_bounds: Mat,
@@ -25,7 +26,9 @@ impl ImageProcessor {
         let low_bounds = Mat::from_slice(&[200, 200, 200])?;
         let high_bounds = Mat::from_slice(&[255, 255, 255])?;
         let ocr = LepTess::new(None, "eng")?;
+        let link_capturer= YoutubeLinkCapturer::new();
         Ok(ImageProcessor {
+            link_capturer,
             video_url,
             ocr,
             low_bounds,
@@ -35,7 +38,7 @@ impl ImageProcessor {
 
     pub async fn next_track(&mut self) -> Result<Track> {
         // CAPTURE
-        let raw_link = YoutubeLinkCapture::get_raw_link(&self.video_url).await?;
+        let raw_link = self.link_capturer.get_raw_link(&self.video_url).await?;
         let mut capturer = VideoCapture::from_file(&raw_link, opencv::videoio::CAP_FFMPEG)?;
         let mut full_image = Mat::default();
         let params = Vector::new();
