@@ -20,7 +20,7 @@ sqlite3 token.db < migrations/20210525000135_table.sql
 export DATABASE_URL=sqlite:token.db
 ```
 
-It only compiles on nightly rust compiler at the moment. 
+Compiling the release build.
 
 ```
 cargo build --release

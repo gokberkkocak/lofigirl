@@ -24,7 +24,7 @@ cargo build --release -p lofigirl
 ### Standalone
 
 ```
-cargo +nightly build --release --features standalone
+cargo build --release --features standalone
 ```
 
 ### With notification support
