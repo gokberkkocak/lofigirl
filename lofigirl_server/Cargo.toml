@@ -12,7 +12,7 @@ lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 lofigirl_shared_listen = { path = "../lofigirl_shared_listen"}
 serde = { version = "1.0", features = ["derive"] }
 # actix 4 beta usage for tokio 1.x
-actix-web = "=4.0.0-rc.3"
+actix-web = "=4.0.1"
 actix-cors = "0.6.0-beta.8"
 actix-rt = "2.6"
 sqlx = { version = "0.5", features = ["sqlite", "runtime-actix-native-tls"] }
