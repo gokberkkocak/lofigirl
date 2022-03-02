@@ -4,6 +4,7 @@ use anyhow::Result;
 use lofigirl_shared_common::config::{ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig, ServerSettingsConfig, VideoConfig};
 use serde::{Deserialize, Serialize};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
+use tracing::info;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -36,6 +37,7 @@ impl Config {
             .is_some()
             .then(|| ())
             .ok_or(ConfigError::EmptyServerConfig)?;
+        info!("Loaded config from {}", file_name.display());
         Ok(config)
     }
 

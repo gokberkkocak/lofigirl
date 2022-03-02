@@ -7,6 +7,7 @@ use lofigirl_shared_common::config::{
 use lofigirl_shared_common::track::Track;
 use rustfm_scrobble::{Scrobble, Scrobbler};
 use thiserror::Error;
+use tracing::info;
 
 #[derive(Default)]
 pub struct Listener {
@@ -61,7 +62,7 @@ impl Listener {
         if let Some(l) = &self.listenbrainz_listener {
             action.act_for_listenbrainz(&l, track)?;
         }
-        println!("Track \"{}\" has been marked: {}", track, action);
+        info!("Track \"{}\" has been marked {} for a user", track, action);
         Ok(())
     }
 
