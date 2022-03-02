@@ -2,6 +2,7 @@ use crate::config::Config;
 use anyhow::Result;
 use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::{config::ConfigError, track::Track};
+use tracing::info;
 
 #[cfg(not(feature = "standalone"))]
 use {
@@ -51,7 +52,7 @@ impl Worker {
         match self.fragile_work().await {
             Ok(_) => true,
             Err(e) => {
-                eprintln!("Problem with: {}", e.to_string());
+                info!("Problem with: {}", e.to_string());
                 false
             }
         }
@@ -249,6 +250,7 @@ impl Worker {
             }
         );
         let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
+        info!("Client worker initialized");
         Ok((
             Worker {
                 client,

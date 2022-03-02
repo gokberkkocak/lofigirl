@@ -5,6 +5,7 @@ use opencv::core::{Mat, MatTraitConst, Rect_};
 use opencv::videoio::VideoCapture;
 use opencv::videoio::VideoCaptureTrait;
 use thiserror::Error;
+use tracing::info;
 use url::Url;
 
 use crate::capture::YoutubeLinkCapturer;
@@ -82,8 +83,7 @@ impl ImageProcessor {
         self.ocr.set_image_from_mem(buf.as_slice())?;
         self.ocr.set_source_resolution(DPI);
         let ocr_text = self.ocr.get_utf8_text()?;
-        #[cfg(debug_assertions)]
-        println!("OCR: {}", ocr_text);
+        info!("Track read using Tesseract OCR: {}", ocr_text);
         let track = Track::from_ocr_text(&ocr_text)?;
         Ok(track)
     }

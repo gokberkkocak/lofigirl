@@ -1,5 +1,6 @@
 use anyhow::Result;
 use thiserror::Error;
+use tracing::info;
 use url::Url;
 
 #[cfg(feature = "rustube")]
@@ -19,8 +20,7 @@ impl YoutubeLinkCapturer {
             .signature_cipher
             .url
             .to_string();
-        #[cfg(debug_assertions)]
-        println!("Raw link: {}", raw_link);
+        info!("Raw video link is captured using rustube: {}", raw_link);
         Ok(raw_link)
     }
 }
@@ -50,8 +50,7 @@ impl YoutubeLinkCapturer {
             .ok_or(CaptureError::YoutubeLinkCaptureError)?
             .url()
             .to_string();
-        #[cfg(debug_assertions)]
-        println!("Raw link: {}", raw_link);
+        info!("Raw link is captured using ytextract: {}", raw_link);
         Ok(raw_link)
     }
 }

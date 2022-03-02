@@ -24,6 +24,7 @@ struct Opt {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    tracing_subscriber::fmt::init();
     let opt = Opt::from_args();
     let config = ServerConfig::from_toml(&opt.config)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
