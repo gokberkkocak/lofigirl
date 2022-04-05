@@ -3903,9 +3903,9 @@ checksum = "d2d7d3948613f75c98fd9328cfdcc45acc4d360655289d0a7d4ec931392200a3"
 
 [[package]]
 name = "ytextract"
-version = "0.10.3"
+version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f02c589f26a884c7b9226301df0916800706d81dd678291b06db27ff09d1608"
+checksum = "7345f01718ee326f8dbaa3be1a2937546cf0b0fe06174aaad544159998888aac"
 dependencies = [
  "async-stream",
  "base64",
