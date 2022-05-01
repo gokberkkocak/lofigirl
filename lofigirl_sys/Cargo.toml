@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 opencv = { version = "0.63", features = ["clang-runtime"]}
-ytextract = "0.10"
+ytextract = "0.11"
 rustube = {version = "0.3", optional = true}
 leptess = "0.13"
 anyhow = "1.0"
