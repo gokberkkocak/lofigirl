@@ -10,7 +10,7 @@ pub struct TokenDB {
 impl TokenDB {
     pub async fn new(filename: &str) -> Result<Self> {
         let token_db = TokenDB {
-            pool: SqlitePool::connect(&format!("sqlite:{}",filename)).await?,
+            pool: SqlitePool::connect(&format!("sqlite:{}", filename)).await?,
         };
         Ok(token_db)
     }
@@ -48,7 +48,10 @@ impl TokenDB {
             Some(rec) => Ok(rec.token),
             None => {
                 let token = Uuid::new_v4();
-                let token_str = token.to_hyphenated().to_string();
+                let token_str = token
+                    .hyphenated()
+                    .encode_lower(&mut Uuid::encode_buffer())
+                    .to_owned();
                 let _id = sqlx::query!(
                     r#"
                         INSERT INTO tokens ( token, lastfm_id, listenbrainz_id )

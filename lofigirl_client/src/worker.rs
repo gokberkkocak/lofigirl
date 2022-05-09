@@ -15,8 +15,8 @@ use {
     lofigirl_shared_common::api::TokenResponse,
     lofigirl_shared_common::config::LastFMClientPasswordConfig,
     lofigirl_shared_common::config::LastFMClientSessionConfig,
-    lofigirl_shared_common::SEND_END_POINT,
     lofigirl_shared_common::LASTFM_SESSION_END_POINT,
+    lofigirl_shared_common::SEND_END_POINT,
     lofigirl_shared_common::TOKEN_END_POINT,
     lofigirl_shared_common::TRACK_END_POINT,
     lofigirl_shared_common::{CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT},
@@ -153,13 +153,12 @@ impl Worker {
             None
         };
         let mut listener = Listener::new();
-            if let Some(session) = lastfm_session_config {
-                config.lastfm = Some(LastFMClientConfig::SessionAuth(session.to_owned()));
-                if let Some(api) = &config.lastfm_api {
-                    listener
-                        .set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
-                }
+        if let Some(session) = lastfm_session_config {
+            config.lastfm = Some(LastFMClientConfig::SessionAuth(session.to_owned()));
+            if let Some(api) = &config.lastfm_api {
+                listener.set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
             }
+        }
         if let Some(listenbrainz) = &config.listenbrainz {
             listener.set_listenbrainz_listener(listenbrainz)?;
         }

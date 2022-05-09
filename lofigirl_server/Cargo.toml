@@ -15,7 +15,7 @@ actix-web = "4.0"
 actix-cors = "0.6"
 actix-rt = "2.7"
 sqlx = { version = "0.5", features = ["sqlite", "runtime-actix-native-tls"] }
-uuid = { version = "0.8", features = ["v4"] }
+uuid = { version = "1.0", features = ["v4"] }
 thiserror = "1.0"
 structopt = "0.3"
 toml = "0.5"

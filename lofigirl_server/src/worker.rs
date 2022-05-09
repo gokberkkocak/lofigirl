@@ -4,7 +4,7 @@ use anyhow::Result;
 use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use lofigirl_sys::image::ImageProcessor;
 use thiserror::Error;
-use tracing::{info,warn};
+use tracing::{info, warn};
 use url::Url;
 
 pub struct ServerWorker {
@@ -29,8 +29,9 @@ impl ServerWorker {
         } else {
             None
         };
-        let state =
-            web::Data::new(AppState::new(config.lastfm_api.clone(), &config.server_settings.token_db).await?);
+        let state = web::Data::new(
+            AppState::new(config.lastfm_api.clone(), &config.server_settings.token_db).await?,
+        );
         info!("Server Worker initialized");
         Ok(ServerWorker {
             main_image_proc,
