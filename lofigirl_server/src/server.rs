@@ -1,6 +1,6 @@
 use crate::session::TokenDB;
 use actix_cors::Cors;
-use  actix_web::http::StatusCode;
+use actix_web::http::StatusCode;
 
 use actix_web::{web, App, HttpServer};
 use actix_web::{HttpResponse, Result};
@@ -10,7 +10,7 @@ use lofigirl_shared_common::api::{
 use lofigirl_shared_common::config::{LastFMApiConfig, LastFMClientConfig};
 use lofigirl_shared_common::{track::Track, CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT};
 use lofigirl_shared_common::{
-    HEALTH_END_POINT, SEND_END_POINT, LASTFM_SESSION_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
+    HEALTH_END_POINT, LASTFM_SESSION_END_POINT, SEND_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
 };
 use lofigirl_shared_listen::listener::Listener;
 use parking_lot::Mutex;

@@ -27,7 +27,7 @@ impl ImageProcessor {
         let low_bounds = Mat::from_slice(&[200, 200, 200])?;
         let high_bounds = Mat::from_slice(&[255, 255, 255])?;
         let ocr = LepTess::new(None, "eng")?;
-        let link_capturer= YoutubeLinkCapturer::new();
+        let link_capturer = YoutubeLinkCapturer::new();
         Ok(ImageProcessor {
             link_capturer,
             video_url,

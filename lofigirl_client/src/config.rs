@@ -1,7 +1,10 @@
 use std::path::Path;
 
 use anyhow::Result;
-use lofigirl_shared_common::config::{ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig, ServerSettingsConfig, VideoConfig};
+use lofigirl_shared_common::config::{
+    ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig,
+    ServerSettingsConfig, VideoConfig,
+};
 use serde::{Deserialize, Serialize};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 use tracing::info;
