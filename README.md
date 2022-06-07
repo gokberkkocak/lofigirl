@@ -10,7 +10,7 @@ This project uses ```opencv``` library to capture/process images and ```tesserac
 
 ## Modules
 
-This project includes different modules and several features which you can choose according to your preference. The list of binaries which are compiled on releases are
+This project includes different modules and several features which you can choose according to your preference. The list of binaries/frontend which are compiled on releases are:
 
 - Lofigirl Server - A http broadcasting server module which does the image 
 processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It also keeps user sessions and sends the listening information to multiple backends.
@@ -23,7 +23,7 @@ processing, ocr and serves it on a selected port. Requires all the dependencies 
 
 ### Arch Linux
 
-On a minimal arch installation, these packages (besides rust and cargo) were required to be able compile and run the system;
+On a minimal arch installation, these packages (besides rust and cargo) were required to be able compile and run the system:
 
 ```
 pacman -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract tesseract-data-eng clang
@@ -77,7 +77,7 @@ To use the system with LastFM, you need a API key and secret. These can be obtai
 
 On the previous project, the system would use the youtube channel information to get live streams however, since it's required YouTube API as well, in this version I decided to simply give the youtube video link directly. Since the livestreams last months, it shouldn't be a big deal. Additionally, it's now also possible to give the second livestream link as well if you want to scrobble that instead. Check ```usage``` for how to do it.
 
-All of the configuration can be put into a toml file like in the [example](https://github.com/gokberkkocak/lofigirl/blob/main/example_config.toml)
+All of the configuration can be put into a toml file like in the [example](https://github.com/gokberkkocak/lofigirl/blob/main/example_config.toml):
 
 ```toml
 [lastfm] # client optional - server ignore
@@ -105,7 +105,7 @@ port = 8888
 
 Both LastFM and ListenBrainz are optional. You can use one or both depending however you want.
 
-LastFM username and password only used once to receive the ```session_key``` and is not stored. Only LastFM session_key and ListenBrainz token are stored on server side which can be seen in the [server table schema](migrations/20210525000135_table.sql).
+LastFM username and password only used once to receive the ```session_key``` and they are not stored. Only LastFM session_key and ListenBrainz token are stored on server side which can be seen in the [server table schema](migrations/20210525000135_table.sql).
 
 ## Usage
 
@@ -137,21 +137,21 @@ docker run -d -v /path/to/your/config.toml:/config.toml --entrypoint {lofigirl_s
 
 ## Main stream as an example
 
-- rustube takes video link and brings the raw video stream for opencv.
-- opencv opens the stream and captures a single frame.
+- The program takes the video link and extracts the raw video stream link using ytextract/rustube.
+- Using opencv, it opens the stream and captures a single frame as an image periodically.
 ![full_1](images/example_1_full.jpg)
-- The image gets cropped
+- The image gets cropped.
 ![cropped_1](images/example_1_cropped.jpg)
 - The background is removed by a mask.
 ![masked_1](images/example_1_masked.jpg)
-- tesseract-ocr checks the image
+- The final image is checked by tesseract-ocr.
 - The info is sent to LastFM and/or ListenBrainz.
 ![lastfm_1](images/example_1_lastfm.png)
 ![listenbrainz_1](images/example_1_listenbrainz.png)
 
 ## Second stream
 
-It work the same way for the second stream as well.
+It works the same way for the second stream as well.
 - Full image
 ![full_2](images/example_2_full.jpg)
 - Cropped image
@@ -164,4 +164,4 @@ It work the same way for the second stream as well.
 
 # Limitations
 
-I'm aware that opencv occasionally (sometimes consecutively) fails to read header information from a stream but I haven't managed to find the source of the problem. Because of it, it's possible that some listen information might not be sent. So no guarantees, but I hope it's better than sending nothing!
+It's known that opencv occasionally (sometimes consecutively) fails to read header information from streams but I haven't managed to find the direct cause of this problem. Because of it, it's possible that some listen information might not be sent. Even with no guarantees, it's better than nothing!
