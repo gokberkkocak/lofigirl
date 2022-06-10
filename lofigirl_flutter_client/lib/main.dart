@@ -1,10 +1,28 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:lofigirl_flutter_client/config.dart';
+import 'package:lofigirl_flutter_client/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
 
 void main() {
-  runApp(const LofiGirl());
+  runApp(const LofiGirlWithSnack());
+}
+
+class LofiGirlWithSnack extends StatelessWidget {
+  const LofiGirlWithSnack({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'LofiGirl Scrobbler Client',
+      home: Scaffold(
+        body: const LofiGirl(),
+      ),
+    );
+  }
 }
 
 class LofiGirl extends StatefulWidget {
@@ -15,12 +33,13 @@ class LofiGirl extends StatefulWidget {
 }
 
 class _LofiGirlState extends State<LofiGirl> {
-  String? _lastfmSessionKey;
+  String? _lastFmSessionKey;
   String? _listenBrainzToken;
   String? _serverUrl;
   String? _sessionToken;
   bool _isScrobbling = false;
-  String? _currentTrack = '';
+  String? _currentTrack;
+  String? _lastFmUsername;
 
   @override
   void initState() {
@@ -31,36 +50,42 @@ class _LofiGirlState extends State<LofiGirl> {
   void _loadValues() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _lastfmSessionKey = prefs.getString('lastFmSessionKey');
+      _lastFmSessionKey = prefs.getString('lastFmSessionKey');
       _listenBrainzToken = prefs.getString('listenBrainzToken');
       _sessionToken = prefs.getString('sessionToken');
       _serverUrl = prefs.getString('serverUrl');
+      _lastFmUsername = prefs.getString('lastFmUsername');
     });
   }
 
   void onServerUrlChanged(String value) {
-    final url = Uri.parse('$value/health/');
+    final url = Uri.parse('$value/health');
     if (url.isAbsolute) {
-      http.get(Uri.parse('$value/health')).then((http.Response response) async {
+      http.get(url).then((http.Response response) async {
+        final status = response.statusCode;
         if (response.statusCode == 200) {
           final SharedPreferences prefs = await SharedPreferences.getInstance();
           setState(() {
             _serverUrl = value;
             prefs.setString("serverUrl", value);
+            const snackBar = SnackBar(
+              content: const Text('Server is set!'),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
           });
         } else {
-          developer.log("server is not healthy", name: 'LofiGirl');
+          final snackBar = SnackBar(
+            content: const Text('Server is not healthy!'),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
         }
       });
+    } else {
+      const snackBar = SnackBar(
+        content: Text('Server url is not valid!'),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
-  }
-
-  void onServerUrlDeleted() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _serverUrl = null;
-      prefs.remove("serverUrl");
-    });
   }
 
   void onListenBrainzTokenChanged(String value) async {
@@ -69,14 +94,73 @@ class _LofiGirlState extends State<LofiGirl> {
       _listenBrainzToken = value;
       prefs.setString("listenBrainzToken", value);
     });
+    const snackBar = SnackBar(
+      content: Text('ListenBrainz token is set!'),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
-  void onListenBrainzTokenDeleted() async {
+  void onLastFmUsernameChanged(String value) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _listenBrainzToken = null;
-      prefs.remove("listenBrainzToken");
+      _lastFmUsername = value;
+      prefs.setString("lastFmUsername", value);
     });
+    const snackBar = SnackBar(
+      content: Text('Last.fm username is set!'),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void onLastFmPasswordChanged(String value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    developer.log('onLastFMPasswordChanged: $value', name: 'LofiGirl');
+    developer.log("$_lastFmUsername", name: 'LofiGirl');
+    if (_lastFmUsername != null) {
+      final url = Uri.parse('$_serverUrl/session');
+      if (url.isAbsolute) {
+        developer.log("ginna send it", name: 'LofiGirl');
+        var config = LastFMClientPasswordConfig(_lastFmUsername!, value);
+        var request = SessionRequest(config);
+        final body = json.encode(request.toJson());
+        developer.log("$body", name: 'LofiGirl');
+        final response = await http.post(
+          url,
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: body,
+        );
+        var s = response.statusCode;
+        developer.log("response status code : $s", name: 'LofiGirl');
+        if (response.statusCode == 200) {
+          developer.log("Last.fm session key: ${response.body}",
+              name: 'LofiGirl');
+          final sessionKey =
+              json.decode(response.body)['session_config']['session_key'];
+          setState(() {
+            _lastFmSessionKey = sessionKey;
+            prefs.setString("lastFmSessionKey", sessionKey);
+          });
+          const snackBar = SnackBar(
+            content: Text('Last.fm session key is set!'),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        }
+      }
+    }
+  }
+
+  void onLastFmSessionKeyDeleted() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _lastFmSessionKey = null;
+      prefs.remove('lastFmSessionKey');
+    });
+    final snackBar = SnackBar(
+      content: const Text('Last.fm session key is deleted!'),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   @override
@@ -97,78 +181,24 @@ class _LofiGirlState extends State<LofiGirl> {
           ),
           body: TabBarView(
             children: [
-              Icon(Icons.music_note),
-              Icon(Icons.self_improvement),
-              Container(
-                  child: Column(children: [
-                ServerSettings(this._serverUrl, this.onServerUrlChanged,
-                    this.onServerUrlDeleted),
+              const Icon(Icons.music_note),
+              const Icon(Icons.self_improvement),
+              Scaffold(
+                  body: Column(children: [
+                ServerSettings(_serverUrl, onServerUrlChanged),
                 ListenBrainzSettings(
-                    this._listenBrainzToken,
-                    this.onListenBrainzTokenChanged,
-                    this.onListenBrainzTokenDeleted),
+                    _listenBrainzToken, onListenBrainzTokenChanged),
+                LastFmSettings(
+                    _lastFmUsername,
+                    _lastFmSessionKey,
+                    onLastFmUsernameChanged,
+                    onLastFmPasswordChanged,
+                    onLastFmSessionKeyDeleted),
               ]))
             ],
           ),
         ),
       ),
     );
-  }
-}
-
-class ServerSettings extends StatelessWidget {
-  String? serverUrl;
-  Function(String) onServerUrlChanged;
-  Function() onServerUrlDeleted;
-  ServerSettings(
-      this.serverUrl, this.onServerUrlChanged, this.onServerUrlDeleted);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-        children: serverUrl != null
-            ? [
-                Text("Server URL has been set to: $serverUrl"),
-                ElevatedButton(
-                    onPressed: onServerUrlDeleted, child: Text("Delete"))
-              ]
-            : [
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Server URL',
-                  ),
-                  onSubmitted: onServerUrlChanged,
-                  controller: TextEditingController(text: serverUrl),
-                )
-              ]);
-  }
-}
-
-class ListenBrainzSettings extends StatelessWidget {
-  String? listenBrainzToken;
-  Function(String) onListenBrainzTokenChanged;
-  Function() onListenBrainzTokenDeleted;
-  ListenBrainzSettings(this.listenBrainzToken, this.onListenBrainzTokenChanged,
-      this.onListenBrainzTokenDeleted);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-        children: listenBrainzToken != null
-            ? [
-                Text("Listenbrainz Token has been set to: $listenBrainzToken"),
-                ElevatedButton(
-                    onPressed: onListenBrainzTokenDeleted,
-                    child: Text("Delete"))
-              ]
-            : [
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'ListenBrainz Token',
-                  ),
-                  onSubmitted: onListenBrainzTokenChanged,
-                  controller: TextEditingController(text: listenBrainzToken),
-                )
-              ]);
   }
 }
