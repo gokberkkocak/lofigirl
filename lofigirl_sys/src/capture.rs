@@ -3,33 +3,35 @@ use thiserror::Error;
 use tracing::info;
 use url::Url;
 
-#[cfg(feature = "rustube")]
+#[cfg(not(feature = "ytextract"))]
 pub struct YoutubeLinkCapturer;
-#[cfg(feature = "rustube")]
+#[cfg(not(feature = "ytextract"))]
 impl YoutubeLinkCapturer {
     pub fn new() -> Self {
         YoutubeLinkCapturer
     }
     pub async fn get_raw_link(&self, url: &Url) -> Result<String> {
-        let raw_link = rustube::VideoFetcher::from_url(url)?
+        let descrambler = rustube::VideoFetcher::from_url(url)?
             .fetch()
             .await?
-            .descramble()?
-            .best_video()
-            .ok_or(CaptureError::YoutubeLinkCaptureError)?
-            .signature_cipher
-            .url
-            .to_string();
+            .descramble()?;
+        let raw_stream = descrambler
+            .streams()
+            .iter()
+            .filter(|stream| stream.codecs.iter().any(|codec| codec.contains("vp9")))
+            .max_by_key(|stream| stream.width)
+            .ok_or(CaptureError::YoutubeLinkCaptureError)?;
+        let raw_link = raw_stream.signature_cipher.url.to_string();
         info!("Raw video link is captured using rustube: {}", raw_link);
         Ok(raw_link)
     }
 }
 
-#[cfg(not(feature = "rustube"))]
+#[cfg(feature = "ytextract")]
 pub struct YoutubeLinkCapturer {
     client: ytextract::Client,
 }
-#[cfg(not(feature = "rustube"))]
+#[cfg(feature = "ytextract")]
 impl YoutubeLinkCapturer {
     pub fn new() -> YoutubeLinkCapturer {
         YoutubeLinkCapturer {
@@ -39,7 +41,8 @@ impl YoutubeLinkCapturer {
 
     pub async fn get_raw_link(&self, url: &Url) -> Result<String> {
         let video = self.client.video(url.as_str().parse()?).await?;
-        let raw_link = video
+
+        let raw_stream = video
             .streams()
             .await?
             .filter_map(|stream| match stream {
@@ -47,9 +50,8 @@ impl YoutubeLinkCapturer {
                 ytextract::Stream::Video(v) => Some(v),
             })
             .max_by_key(|stream| stream.width())
-            .ok_or(CaptureError::YoutubeLinkCaptureError)?
-            .url()
-            .to_string();
+            .ok_or(CaptureError::YoutubeLinkCaptureError)?;
+        let raw_link = raw_stream.url().to_string();
         info!("Raw link is captured using ytextract: {}", raw_link);
         Ok(raw_link)
     }
