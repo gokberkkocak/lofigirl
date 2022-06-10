@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -43,6 +44,11 @@ class _LofiGirlState extends State<LofiGirl> {
 
   @override
   void initState() {
+    Timer.periodic(Duration(seconds: 15), (timer) {
+      if (_isScrobbling) {
+        _scrobble();
+      }
+    });
     super.initState();
     _loadValues();
   }
@@ -57,6 +63,8 @@ class _LofiGirlState extends State<LofiGirl> {
       _lastFmUsername = prefs.getString('lastFmUsername');
     });
   }
+
+  void _scrobble() async {}
 
   void onServerUrlChanged(String value) {
     final url = Uri.parse('$value/health');
