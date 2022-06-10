@@ -95,3 +95,35 @@ class LastFmSettings extends StatelessWidget {
               ]);
   }
 }
+
+class LofiGirlToken extends StatelessWidget {
+  final String? sessionToken;
+  final Function() onSessionTokenRequest;
+
+  const LofiGirlToken(this.sessionToken, this.onSessionTokenRequest);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+        children: (sessionToken == null)
+            ? [
+                ElevatedButton(
+                  child: const Text('Connect!'),
+                  onPressed: onSessionTokenRequest,
+                )
+              ]
+            : [
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'App Session Token',
+                  ),
+                  readOnly: true,
+                  controller: TextEditingController(text: sessionToken),
+                ),
+                ElevatedButton(
+                  child: const Text('Disconnect!'),
+                  onPressed: onSessionTokenRequest,
+                )
+              ]);
+  }
+}

@@ -18,3 +18,14 @@ class SessionRequest {
         'password_config': password_config.toJson(),
       };
 }
+
+class TokenRequest {
+  final String? lastfm_session_key;
+  final String? listenbrainz_token;
+  TokenRequest(this.lastfm_session_key, this.listenbrainz_token);
+
+  Map toJson() => {
+        'lastfm_session_key': lastfm_session_key,
+        'listenbrainz_token': listenbrainz_token,
+      };
+}

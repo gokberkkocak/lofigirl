@@ -8,11 +8,11 @@ import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
 
 void main() {
-  runApp(const LofiGirlWithSnack());
+  runApp(const LofiGirlWithScaffold());
 }
 
-class LofiGirlWithSnack extends StatelessWidget {
-  const LofiGirlWithSnack({super.key});
+class LofiGirlWithScaffold extends StatelessWidget {
+  const LofiGirlWithScaffold({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +62,6 @@ class _LofiGirlState extends State<LofiGirl> {
     final url = Uri.parse('$value/health');
     if (url.isAbsolute) {
       http.get(url).then((http.Response response) async {
-        final status = response.statusCode;
         if (response.statusCode == 200) {
           final SharedPreferences prefs = await SharedPreferences.getInstance();
           setState(() {
@@ -74,7 +73,7 @@ class _LofiGirlState extends State<LofiGirl> {
             ScaffoldMessenger.of(context).showSnackBar(snackBar);
           });
         } else {
-          final snackBar = SnackBar(
+          const snackBar = SnackBar(
             content: const Text('Server is not healthy!'),
           );
           ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -114,16 +113,12 @@ class _LofiGirlState extends State<LofiGirl> {
 
   void onLastFmPasswordChanged(String value) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    developer.log('onLastFMPasswordChanged: $value', name: 'LofiGirl');
-    developer.log("$_lastFmUsername", name: 'LofiGirl');
     if (_lastFmUsername != null) {
       final url = Uri.parse('$_serverUrl/session');
       if (url.isAbsolute) {
-        developer.log("ginna send it", name: 'LofiGirl');
         var config = LastFMClientPasswordConfig(_lastFmUsername!, value);
         var request = SessionRequest(config);
         final body = json.encode(request.toJson());
-        developer.log("$body", name: 'LofiGirl');
         final response = await http.post(
           url,
           headers: <String, String>{
@@ -131,11 +126,7 @@ class _LofiGirlState extends State<LofiGirl> {
           },
           body: body,
         );
-        var s = response.statusCode;
-        developer.log("response status code : $s", name: 'LofiGirl');
         if (response.statusCode == 200) {
-          developer.log("Last.fm session key: ${response.body}",
-              name: 'LofiGirl');
           final sessionKey =
               json.decode(response.body)['session_config']['session_key'];
           setState(() {
@@ -161,6 +152,35 @@ class _LofiGirlState extends State<LofiGirl> {
       content: const Text('Last.fm session key is deleted!'),
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void onSessionTokenRequested() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (_lastFmSessionKey != null || _listenBrainzToken != null) {
+      final url = Uri.parse('$_serverUrl/token');
+      if (url.isAbsolute) {
+        var request = TokenRequest(_lastFmSessionKey, _listenBrainzToken);
+        final body = json.encode(request.toJson());
+        final response = await http.post(
+          url,
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: body,
+        );
+        if (response.statusCode == 200) {
+          final token = json.decode(response.body)['token'];
+          setState(() {
+            _sessionToken = token;
+            prefs.setString("sessionToken", token);
+          });
+          const snackBar = SnackBar(
+            content: Text('Session token is set!'),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        }
+      }
+    }
   }
 
   @override
@@ -194,6 +214,7 @@ class _LofiGirlState extends State<LofiGirl> {
                     onLastFmUsernameChanged,
                     onLastFmPasswordChanged,
                     onLastFmSessionKeyDeleted),
+                LofiGirlToken(_sessionToken, onSessionTokenRequested)
               ]))
             ],
           ),
