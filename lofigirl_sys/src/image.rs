@@ -41,23 +41,27 @@ impl ImageProcessor {
         // CAPTURE
         let raw_link = self.link_capturer.get_raw_link(&self.video_url).await?;
         let mut capturer = VideoCapture::from_file(&raw_link, opencv::videoio::CAP_FFMPEG)?;
-        capturer.set(opencv::videoio::CAP_PROP_FRAME_WIDTH, 1920.0)?;
-        capturer.set(opencv::videoio::CAP_PROP_FRAME_HEIGHT, 1080.0)?;
         let mut full_image = Mat::default();
         let params = Vector::new();
         capturer
-            .read(&mut full_image)?;
+            .read(&mut full_image)?
+            .then(|| ())
+            .ok_or(ImageProcessingError::ImageReadError)?;
         #[cfg(debug_assertions)]
-        opencv::imgcodecs::imwrite("debug_full.jpg", &full_image, &params)?;
+        opencv::imgcodecs::imwrite("debug_full.jpg", &full_image, &params)?
+            .then(|| ())
+            .ok_or(ImageProcessingError::ImageWriteError)?;
         // CROP
         let image_dimensions = full_image.mat_size();
         (image_dimensions.len() == 2)
-           .then(|| ())
-           .ok_or(ImageProcessingError::ImageDimensionsError)?;
-        let roi = Rect_::new(0, 0, 1920, 108);
+            .then(|| ())
+            .ok_or(ImageProcessingError::ImageDimensionsError)?;
+        let roi = Rect_::new(0, 0, image_dimensions[1], image_dimensions[0] / 10);
         let cropped_image = Mat::roi(&full_image, roi)?;
         #[cfg(debug_assertions)]
-        opencv::imgcodecs::imwrite("debug_cropped.jpg", &cropped_image, &params)?;
+        opencv::imgcodecs::imwrite("debug_cropped.jpg", &cropped_image, &params)?
+            .then(|| ())
+            .ok_or(ImageProcessingError::ImageWriteError)?;
         // MASK
         let mut masked_image = Mat::default();
         opencv::core::in_range(
@@ -67,10 +71,14 @@ impl ImageProcessor {
             &mut masked_image,
         )?;
         #[cfg(debug_assertions)]
-        opencv::imgcodecs::imwrite("debug_masked.jpg", &masked_image, &params)?;
+        opencv::imgcodecs::imwrite("debug_masked.jpg", &masked_image, &params)?
+            .then(|| ())
+            .ok_or(ImageProcessingError::ImageWriteError)?;
         // ENCODE
         let mut buf = Vector::new();
-        opencv::imgcodecs::imencode(".jpg", &masked_image, &mut buf, &params)?;
+        opencv::imgcodecs::imencode(".jpg", &masked_image, &mut buf, &params)?
+            .then(|| ())
+            .ok_or(ImageProcessingError::ImageEncodeError)?;
         // OCR
         self.ocr.set_image_from_mem(buf.as_slice())?;
         self.ocr.set_source_resolution(DPI);
@@ -83,6 +91,14 @@ impl ImageProcessor {
 
 #[derive(Error, Debug)]
 pub enum ImageProcessingError {
-    #[error("Read frame has no dimensions. There is a problem with the reading the stream.")]
+    #[error("Reading the frame has failed.")]
+    ImageReadError,
+    #[error("Writing the image for debug has failed.")]
+    ImageWriteError,
+    #[error("Encoding the image has failed.")]
+    ImageEncodeError,
+    #[error("There is a problem with the frame dimensions.")]
     ImageDimensionsError,
+    #[error("Masking the frame has failed.")]
+    ImageMaskError,
 }
