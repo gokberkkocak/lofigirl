@@ -41,6 +41,7 @@ class _LofiGirlState extends State<LofiGirl> {
   bool _isScrobbling = false;
   String? _currentTrack;
   String? _lastFmUsername;
+  String? _lofiStreamName;
 
   @override
   void initState() {
@@ -195,13 +196,12 @@ class _LofiGirlState extends State<LofiGirl> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: DefaultTabController(
-        length: 3,
+        length: 2,
         child: Scaffold(
           appBar: AppBar(
             bottom: const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.music_note)),
-                Tab(icon: Icon(Icons.self_improvement)),
                 Tab(icon: Icon(Icons.settings)),
               ],
             ),
@@ -209,8 +209,65 @@ class _LofiGirlState extends State<LofiGirl> {
           ),
           body: TabBarView(
             children: [
-              const Icon(Icons.music_note),
-              const Icon(Icons.self_improvement),
+              Scaffold(
+                  body: Column(
+                      children: (_sessionToken != null)
+                          ? [
+                              ListTile(
+                                title: Text("Chill"),
+                                leading: Radio(
+                                    value: "chill",
+                                    groupValue: _lofiStreamName,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _lofiStreamName = value.toString();
+                                      });
+                                    }),
+                              ),
+                              ListTile(
+                                title: Text("Sleep"),
+                                leading: Radio(
+                                    value: "sleep",
+                                    groupValue: _lofiStreamName,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _lofiStreamName = value.toString();
+                                      });
+                                    }),
+                              ),
+                              ElevatedButton(
+                                child: const Text('GO!'),
+                                onPressed: () {
+                                  setState(() {
+                                    _isScrobbling = true;
+                                  });
+                                },
+                              )
+                            ]
+                          : [
+                              ListTile(
+                                title: Text("Chill"),
+                                leading: Radio(
+                                    value: "chill",
+                                    groupValue: _lofiStreamName,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _lofiStreamName = value.toString();
+                                      });
+                                    }),
+                              ),
+                              ListTile(
+                                title: Text("Sleep"),
+                                leading: Radio(
+                                    value: "sleep",
+                                    groupValue: _lofiStreamName,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _lofiStreamName = value.toString();
+                                      });
+                                    }),
+                              )
+                            ])),
               Scaffold(
                   body: Column(children: [
                 ServerSettings(_serverUrl, onServerUrlChanged),
