@@ -42,6 +42,7 @@ class _LofiGirlState extends State<LofiGirl> {
   String? _currentTrack;
   String? _lastFmUsername;
   String? _lofiStreamName;
+  int _seenCount = 0;
 
   @override
   void initState() {
@@ -65,7 +66,37 @@ class _LofiGirlState extends State<LofiGirl> {
     });
   }
 
-  void _scrobble() async {}
+  void _scrobble() async {
+    var nextTrack = _getTrack();
+    if (_currentTrack == nextTrack) {
+      _seenCount += 1;
+    } else {
+      _seenCount = 0;
+    }
+
+    _currentTrack = nextTrack;
+    if (_seenCount == 3) {
+      _seenCount = 0;
+      _scrobbleTrack();
+    }
+    if (_seenCount == 0) {
+      _sendPlayingNow();
+    }
+  }
+
+  String _getTrack() {
+    // TODO
+
+    return 'Song';
+  }
+
+  void _scrobbleTrack() {
+    // TODO : Scrobble track by http post
+  }
+
+  void _sendPlayingNow() {
+    // TODO : Send playing now by http post
+  }
 
   void onServerUrlChanged(String value) {
     final url = Uri.parse('$value/health');
