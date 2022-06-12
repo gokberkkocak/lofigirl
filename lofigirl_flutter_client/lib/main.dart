@@ -83,7 +83,7 @@ class _LofiGirlState extends State<LofiGirl> {
           });
         } else {
           const snackBar = SnackBar(
-            content: const Text('Server is not healthy!'),
+            content: const Text('Server did not respond correctly!'),
           );
           ScaffoldMessenger.of(context).showSnackBar(snackBar);
         }
@@ -244,30 +244,7 @@ class _LofiGirlState extends State<LofiGirl> {
                                 },
                               )
                             ]
-                          : [
-                              ListTile(
-                                title: Text("Chill"),
-                                leading: Radio(
-                                    value: "chill",
-                                    groupValue: _lofiStreamName,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _lofiStreamName = value.toString();
-                                      });
-                                    }),
-                              ),
-                              ListTile(
-                                title: Text("Sleep"),
-                                leading: Radio(
-                                    value: "sleep",
-                                    groupValue: _lofiStreamName,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _lofiStreamName = value.toString();
-                                      });
-                                    }),
-                              )
-                            ])),
+                          : [SetSettingsButton()])),
               Scaffold(
                   body: Column(children: [
                 ServerSettings(_serverUrl, onServerUrlChanged),
@@ -279,12 +256,29 @@ class _LofiGirlState extends State<LofiGirl> {
                     onLastFmUsernameChanged,
                     onLastFmPasswordChanged,
                     onLastFmSessionKeyDeleted),
-                LofiGirlToken(_sessionToken, onSessionTokenRequested)
+                LofiGirlToken(
+                    _sessionToken,
+                    onSessionTokenRequested,
+                    (((_lastFmSessionKey != null) ||
+                            (_listenBrainzToken != null)) &&
+                        (_serverUrl != null))),
               ]))
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+class SetSettingsButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+        child: ElevatedButton(
+            child: Text('Get connected!'),
+            onPressed: () {
+              DefaultTabController.of(context)!.animateTo(1);
+            }));
   }
 }

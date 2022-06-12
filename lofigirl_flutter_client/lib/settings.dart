@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 
 class ServerSettings extends StatelessWidget {
   String? serverUrl;
@@ -99,11 +100,21 @@ class LastFmSettings extends StatelessWidget {
 class LofiGirlToken extends StatelessWidget {
   final String? sessionToken;
   final Function() onSessionTokenRequest;
+  final bool isActive;
 
-  const LofiGirlToken(this.sessionToken, this.onSessionTokenRequest);
+  const LofiGirlToken(
+      this.sessionToken, this.onSessionTokenRequest, this.isActive);
 
   @override
   Widget build(BuildContext context) {
+    if (!isActive) {
+      return Column(children: [
+        ElevatedButton(
+          child: const Text('Connect!'),
+          onPressed: null,
+        )
+      ]);
+    }
     return Column(
         children: (sessionToken == null)
             ? [
