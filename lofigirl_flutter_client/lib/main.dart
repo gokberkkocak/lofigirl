@@ -194,7 +194,7 @@ class _LofiGirlState extends State<LofiGirl> {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
-  void onSessionTokenRequested() async {
+  Future<bool> onSessionTokenRequested() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (_lastFmSessionKey != null || _listenBrainzToken != null) {
       final url = Uri.parse('$_serverUrl/token');
@@ -218,9 +218,20 @@ class _LofiGirlState extends State<LofiGirl> {
             content: Text('Session token is set!'),
           );
           ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          // developer.log("$_sessionToken", name: 'Session token');
+          return true;
         }
       }
     }
+    return false;
+  }
+
+  void onSessionTokenDeleted() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _sessionToken = null;
+      prefs.remove('sessionToken');
+    });
   }
 
   @override
@@ -241,43 +252,54 @@ class _LofiGirlState extends State<LofiGirl> {
           body: TabBarView(
             children: [
               Scaffold(
-                  body: Column(
+                  body: ListView(
+                      padding: const EdgeInsets.all(8),
                       children: (_sessionToken != null)
                           ? [
-                              ListTile(
-                                title: Text("Chill"),
-                                leading: Radio(
-                                    value: "chill",
-                                    groupValue: _lofiStreamName,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _lofiStreamName = value.toString();
-                                      });
-                                    }),
-                              ),
-                              ListTile(
-                                title: Text("Sleep"),
-                                leading: Radio(
-                                    value: "sleep",
-                                    groupValue: _lofiStreamName,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _lofiStreamName = value.toString();
-                                      });
-                                    }),
-                              ),
-                              ElevatedButton(
-                                child: const Text('GO!'),
-                                onPressed: () {
+                              Center(
+                                  child: Text(
+                                      "Which steam are you listening right now?",
+                                      style: TextStyle(fontSize: 20))),
+                              RadioListTile(
+                                title: const Text('Chill Stream'),
+                                value: 'Chill',
+                                groupValue: _lofiStreamName,
+                                onChanged: (value) {
                                   setState(() {
-                                    _isScrobbling = true;
+                                    _lofiStreamName = value.toString();
                                   });
                                 },
-                              )
+                              ),
+                              RadioListTile(
+                                title: const Text('Sleep Stream'),
+                                value: 'sleep',
+                                groupValue: _lofiStreamName,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _lofiStreamName = value.toString();
+                                  });
+                                },
+                              ),
+                              Padding(
+                                  padding: EdgeInsets.only(top: 10),
+                                  child: ElevatedButton.icon(
+                                    label: const Text('Start scrobbling!'),
+                                    icon: const Icon(Icons.play_arrow),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isScrobbling = true;
+                                      });
+                                    },
+                                  ))
                             ]
-                          : [SetSettingsButton()])),
+                          : [
+                              Center(
+                                  child: Text("Let's get started!",
+                                      style: TextStyle(fontSize: 20))),
+                              SetSettingsButton()
+                            ])),
               Scaffold(
-                  body: Column(children: [
+                  body: ListView(padding: const EdgeInsets.all(8), children: [
                 ServerSettings(_serverUrl, onServerUrlChanged),
                 ListenBrainzSettings(
                     _listenBrainzToken, onListenBrainzTokenChanged),
@@ -290,6 +312,7 @@ class _LofiGirlState extends State<LofiGirl> {
                 LofiGirlToken(
                     _sessionToken,
                     onSessionTokenRequested,
+                    onSessionTokenDeleted,
                     (((_lastFmSessionKey != null) ||
                             (_listenBrainzToken != null)) &&
                         (_serverUrl != null))),
@@ -305,9 +328,11 @@ class _LofiGirlState extends State<LofiGirl> {
 class SetSettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-        child: ElevatedButton(
-            child: Text('Get connected!'),
+    return Padding(
+        padding: EdgeInsets.only(top: 10),
+        child: ElevatedButton.icon(
+            icon: Icon(Icons.settings),
+            label: Text('Get connected!'),
             onPressed: () {
               DefaultTabController.of(context)!.animateTo(1);
             }));

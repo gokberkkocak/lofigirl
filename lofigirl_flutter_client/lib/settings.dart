@@ -89,52 +89,71 @@ class LastFmSettings extends StatelessWidget {
                   readOnly: true,
                   controller: TextEditingController(text: lastFMSessionKey),
                 ),
-                ElevatedButton(
-                  child: const Text('Delete Session Key'),
-                  onPressed: onLastFMSessionKeyDeleted,
-                )
+                Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: ElevatedButton(
+                      child: const Text('Delete Session Key'),
+                      onPressed: onLastFMSessionKeyDeleted,
+                    ))
               ]);
   }
 }
 
 class LofiGirlToken extends StatelessWidget {
   final String? sessionToken;
-  final Function() onSessionTokenRequest;
+  final Future<bool> Function() onSessionTokenRequest;
+  final Function() onSessionTokenDeleted;
   final bool isActive;
 
-  const LofiGirlToken(
-      this.sessionToken, this.onSessionTokenRequest, this.isActive);
+  const LofiGirlToken(this.sessionToken, this.onSessionTokenRequest,
+      this.onSessionTokenDeleted, this.isActive);
 
   @override
   Widget build(BuildContext context) {
     if (!isActive) {
-      return Column(children: [
-        ElevatedButton(
-          child: const Text('Connect!'),
-          onPressed: null,
-        )
-      ]);
+      return Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: ElevatedButton(
+            child: const Text('Connect!'),
+            onPressed: null,
+          ));
     }
-    return Column(
-        children: (sessionToken == null)
-            ? [
-                ElevatedButton(
-                  child: const Text('Connect!'),
-                  onPressed: onSessionTokenRequest,
-                )
-              ]
-            : [
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'App Session Token',
-                  ),
-                  readOnly: true,
-                  controller: TextEditingController(text: sessionToken),
-                ),
-                ElevatedButton(
-                  child: const Text('Disconnect!'),
-                  onPressed: onSessionTokenRequest,
-                )
-              ]);
+    return Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Column(
+            children: (sessionToken == null)
+                ? [ConnectButton(onSessionTokenRequest)]
+                : [
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'App Session Token',
+                      ),
+                      readOnly: true,
+                      controller: TextEditingController(text: sessionToken),
+                    ),
+                    Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: ElevatedButton(
+                          child: const Text('Disconnect!'),
+                          onPressed: onSessionTokenDeleted,
+                        ))
+                  ]));
+  }
+}
+
+class ConnectButton extends StatelessWidget {
+  final Future<bool> Function() onSessionTokenRequest;
+
+  const ConnectButton(this.onSessionTokenRequest);
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      child: const Text('Connect!'),
+      onPressed: () async {
+        // Go to play page
+        await onSessionTokenRequest();
+      },
+    );
   }
 }
