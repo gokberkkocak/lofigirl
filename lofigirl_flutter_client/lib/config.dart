@@ -29,3 +29,35 @@ class TokenRequest {
         'listenbrainz_token': listenbrainz_token,
       };
 }
+
+enum LofiStream { Chill, Sleep }
+
+class Track {
+  final String artist;
+  final String song;
+
+  Track(this.artist, this.song);
+
+  Map<String, dynamic> toJson() => {
+        'artist': artist,
+        'song': song,
+      };
+
+  factory Track.fromJson(Map<String, dynamic> json) {
+    return Track(json['artist'] as String, json['song'] as String);
+  }
+}
+
+class ScrobbleRequest {
+  final String token;
+  final String action;
+  final Track track;
+
+  ScrobbleRequest(this.token, this.track, this.action);
+
+  Map<String, dynamic> toJson() => {
+        'token': token,
+        'action': action,
+        'track': track.toJson(),
+      };
+}

@@ -3,8 +3,9 @@ import 'dart:developer' as developer;
 
 class ServerSettings extends StatelessWidget {
   String? serverUrl;
+  String? sessionToken;
   Function(String) onServerUrlChanged;
-  ServerSettings(this.serverUrl, this.onServerUrlChanged);
+  ServerSettings(this.serverUrl, this.sessionToken, this.onServerUrlChanged);
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +15,7 @@ class ServerSettings extends StatelessWidget {
           labelText: 'Server URL',
         ),
         onSubmitted: onServerUrlChanged,
+        readOnly: (sessionToken != null),
         controller: TextEditingController(text: serverUrl),
       ),
     ]);
@@ -22,8 +24,10 @@ class ServerSettings extends StatelessWidget {
 
 class ListenBrainzSettings extends StatelessWidget {
   String? listenBrainzToken;
+  String? sessionToken;
   Function(String) onListenBrainzTokenChanged;
-  ListenBrainzSettings(this.listenBrainzToken, this.onListenBrainzTokenChanged);
+  ListenBrainzSettings(this.listenBrainzToken, this.sessionToken,
+      this.onListenBrainzTokenChanged);
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +37,7 @@ class ListenBrainzSettings extends StatelessWidget {
           labelText: 'ListenBrainz Token',
         ),
         onSubmitted: onListenBrainzTokenChanged,
+        readOnly: (sessionToken != null),
         controller: TextEditingController(text: listenBrainzToken),
       )
     ]);
@@ -42,12 +47,14 @@ class ListenBrainzSettings extends StatelessWidget {
 class LastFmSettings extends StatelessWidget {
   String? lastFmUsername;
   String? lastFMSessionKey;
+  String? sessionToken;
   Function(String) onLastFMUsernameChanged;
   Function(String) onLastFMPasswordChanged;
   Function() onLastFMSessionKeyDeleted;
   LastFmSettings(
       this.lastFmUsername,
       this.lastFMSessionKey,
+      this.sessionToken,
       this.onLastFMUsernameChanged,
       this.onLastFMPasswordChanged,
       this.onLastFMSessionKeyDeleted);
@@ -62,6 +69,7 @@ class LastFmSettings extends StatelessWidget {
                     labelText: 'LastFM Username',
                   ),
                   onSubmitted: onLastFMUsernameChanged,
+                  readOnly: (sessionToken != null),
                   controller: TextEditingController(text: lastFmUsername),
                 ),
                 TextField(
@@ -70,6 +78,7 @@ class LastFmSettings extends StatelessWidget {
                   ),
                   obscureText: true,
                   onSubmitted: onLastFMPasswordChanged,
+                  readOnly: (sessionToken != null),
                   controller: TextEditingController(text: ''),
                 )
               ]
@@ -111,11 +120,11 @@ class LofiGirlToken extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isActive) {
-      return Padding(
-          padding: const EdgeInsets.only(top: 20),
+      return const Padding(
+          padding: EdgeInsets.only(top: 20),
           child: ElevatedButton(
-            child: const Text('Connect!'),
             onPressed: null,
+            child: Text('Connect!'),
           ));
     }
     return Padding(
@@ -132,10 +141,10 @@ class LofiGirlToken extends StatelessWidget {
                       controller: TextEditingController(text: sessionToken),
                     ),
                     Padding(
-                        padding: EdgeInsets.only(top: 10),
+                        padding: const EdgeInsets.only(top: 10),
                         child: ElevatedButton(
-                          child: const Text('Disconnect!'),
                           onPressed: onSessionTokenDeleted,
+                          child: const Text('Disconnect!'),
                         ))
                   ]));
   }
@@ -151,8 +160,9 @@ class ConnectButton extends StatelessWidget {
     return ElevatedButton(
       child: const Text('Connect!'),
       onPressed: () async {
-        // Go to play page
-        await onSessionTokenRequest();
+        var ret = onSessionTokenRequest();
+        ret.then((value) =>
+            developer.log("App Connected: $value", name: 'ConnectButton'));
       },
     );
   }

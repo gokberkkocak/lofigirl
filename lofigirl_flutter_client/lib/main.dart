@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:lofigirl_flutter_client/config.dart';
@@ -39,9 +40,9 @@ class _LofiGirlState extends State<LofiGirl> {
   String? _serverUrl;
   String? _sessionToken;
   bool _isScrobbling = false;
-  String? _currentTrack;
+  Track? _currentTrack;
   String? _lastFmUsername;
-  String? _lofiStreamName;
+  LofiStream? _lofiStreamName;
   int _seenCount = 0;
 
   @override
@@ -67,40 +68,77 @@ class _LofiGirlState extends State<LofiGirl> {
   }
 
   void _scrobble() async {
-    var nextTrack = _getTrack();
-    if (_currentTrack == nextTrack) {
+    var nextTrack = await _getTrack();
+    if (nextTrack == null) {
+      return;
+    }
+
+    if (_currentTrack != null &&
+        _currentTrack!.artist == nextTrack.artist &&
+        _currentTrack!.song == nextTrack.song) {
       _seenCount += 1;
     } else {
       _seenCount = 0;
     }
 
-    _currentTrack = nextTrack;
+    setState(() {
+      _currentTrack = nextTrack;
+    });
+
+    developer.log("$_seenCount", name: 'seenCount');
+
     if (_seenCount == 3) {
-      _seenCount = 0;
-      _scrobbleTrack();
+      _sendInfo("Listened");
     }
     if (_seenCount == 0) {
-      _sendPlayingNow();
+      _sendInfo("PlayingNow");
     }
   }
 
-  String _getTrack() {
-    // TODO
-
-    return 'Song';
+  Future<Track?> _getTrack() async {
+    var endPoint = (_lofiStreamName == LofiStream.Chill) ? "chill" : "sleep";
+    final url = Uri.parse('$_serverUrl/track/$endPoint');
+    developer.log('GET $url', name: 'LofiGirl');
+    if (url.isAbsolute) {
+      var track = await http.get(url).then((http.Response response) async {
+        if (response.statusCode == 200) {
+          var track = Track.fromJson(json.decode(response.body));
+          return track;
+        } else {
+          developer.log('Error getting track', name: 'LofiGirl');
+        }
+      });
+      return track;
+    }
+    return null;
   }
 
-  void _scrobbleTrack() {
-    // TODO : Scrobble track by http post
-  }
-
-  void _sendPlayingNow() {
-    // TODO : Send playing now by http post
+  void _sendInfo(String info) {
+    final url = Uri.parse('$_serverUrl/send');
+    developer.log('POST $url', name: 'LofiGirl');
+    if (url.isAbsolute) {
+      var request = ScrobbleRequest(_sessionToken!, _currentTrack!, info);
+      var body = json.encode(request.toJson());
+      http
+          .post(url,
+              headers: <String, String>{
+                'Content-Type': 'application/json; charset=UTF-8',
+              },
+              body: body)
+          .then((http.Response response) {
+        if (response.statusCode == 200) {
+          developer.log('Info sent correctly', name: 'LofiGirl');
+        } else {
+          developer.log('Error sending scrobble', name: 'LofiGirl');
+        }
+      });
+    }
   }
 
   void onServerUrlChanged(String value) {
     final url = Uri.parse('$value/health');
     if (url.isAbsolute) {
+      developer.log('GET $url', name: 'LofiGirl');
       http.get(url).then((http.Response response) async {
         if (response.statusCode == 200) {
           final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -155,6 +193,7 @@ class _LofiGirlState extends State<LofiGirl> {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (_lastFmUsername != null) {
       final url = Uri.parse('$_serverUrl/session');
+      developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
         var config = LastFMClientPasswordConfig(_lastFmUsername!, value);
         var request = SessionRequest(config);
@@ -198,6 +237,7 @@ class _LofiGirlState extends State<LofiGirl> {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (_lastFmSessionKey != null || _listenBrainzToken != null) {
       final url = Uri.parse('$_serverUrl/token');
+      developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
         var request = TokenRequest(_lastFmSessionKey, _listenBrainzToken);
         final body = json.encode(request.toJson());
@@ -252,60 +292,80 @@ class _LofiGirlState extends State<LofiGirl> {
           body: TabBarView(
             children: [
               Scaffold(
-                  body: ListView(
-                      padding: const EdgeInsets.all(8),
-                      children: (_sessionToken != null)
-                          ? [
-                              Center(
-                                  child: Text(
-                                      "Which steam are you listening right now?",
-                                      style: TextStyle(fontSize: 20))),
-                              RadioListTile(
-                                title: const Text('Chill Stream'),
-                                value: 'Chill',
-                                groupValue: _lofiStreamName,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _lofiStreamName = value.toString();
-                                  });
-                                },
-                              ),
-                              RadioListTile(
-                                title: const Text('Sleep Stream'),
-                                value: 'sleep',
-                                groupValue: _lofiStreamName,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _lofiStreamName = value.toString();
-                                  });
-                                },
-                              ),
-                              Padding(
-                                  padding: EdgeInsets.only(top: 10),
-                                  child: ElevatedButton.icon(
-                                    label: const Text('Start scrobbling!'),
-                                    icon: const Icon(Icons.play_arrow),
-                                    onPressed: () {
+                  body: (_isScrobbling)
+                      ? ListView(
+                          padding: const EdgeInsets.all(8),
+                          children: [
+                            ListeningInfo(_currentTrack),
+                            Padding(
+                                padding: EdgeInsets.only(top: 10),
+                                child: ElevatedButton.icon(
+                                  label: const Text('Stop scrobbling!'),
+                                  icon: const Icon(Icons.stop),
+                                  onPressed: () {
+                                    setState(() {
+                                      _isScrobbling = false;
+                                      _currentTrack = null;
+                                    });
+                                  },
+                                ))
+                          ],
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.all(8),
+                          children: (_sessionToken != null)
+                              ? [
+                                  Center(
+                                      child: Text(
+                                          "Which steam are you listening right now?",
+                                          style: TextStyle(fontSize: 20))),
+                                  RadioListTile(
+                                    title: const Text('Chill Stream'),
+                                    value: LofiStream.Chill,
+                                    groupValue: _lofiStreamName,
+                                    onChanged: (value) {
                                       setState(() {
-                                        _isScrobbling = true;
+                                        _lofiStreamName = LofiStream.Chill;
                                       });
                                     },
-                                  ))
-                            ]
-                          : [
-                              Center(
-                                  child: Text("Let's get started!",
-                                      style: TextStyle(fontSize: 20))),
-                              SetSettingsButton()
-                            ])),
+                                  ),
+                                  RadioListTile(
+                                    title: const Text('Sleep Stream'),
+                                    value: LofiStream.Sleep,
+                                    groupValue: _lofiStreamName,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _lofiStreamName = LofiStream.Sleep;
+                                      });
+                                    },
+                                  ),
+                                  Padding(
+                                      padding: EdgeInsets.only(top: 10),
+                                      child: ElevatedButton.icon(
+                                        label: const Text('Start scrobbling!'),
+                                        icon: const Icon(Icons.play_arrow),
+                                        onPressed: () {
+                                          setState(() {
+                                            _isScrobbling = true;
+                                          });
+                                        },
+                                      ))
+                                ]
+                              : [
+                                  Center(
+                                      child: Text("Let's get started!",
+                                          style: TextStyle(fontSize: 20))),
+                                  SetSettingsButton()
+                                ])),
               Scaffold(
                   body: ListView(padding: const EdgeInsets.all(8), children: [
-                ServerSettings(_serverUrl, onServerUrlChanged),
-                ListenBrainzSettings(
-                    _listenBrainzToken, onListenBrainzTokenChanged),
+                ServerSettings(_serverUrl, _sessionToken, onServerUrlChanged),
+                ListenBrainzSettings(_listenBrainzToken, _sessionToken,
+                    onListenBrainzTokenChanged),
                 LastFmSettings(
                     _lastFmUsername,
                     _lastFmSessionKey,
+                    _sessionToken,
                     onLastFmUsernameChanged,
                     onLastFmPasswordChanged,
                     onLastFmSessionKeyDeleted),
@@ -336,5 +396,41 @@ class SetSettingsButton extends StatelessWidget {
             onPressed: () {
               DefaultTabController.of(context)!.animateTo(1);
             }));
+  }
+}
+
+class ListeningInfo extends StatelessWidget {
+  final Track? track;
+  const ListeningInfo(this.track);
+
+  @override
+  Widget build(BuildContext context) {
+    return track != null
+        ? Column(
+            children: [
+              Center(
+                  child: Text(
+                "Now playing",
+              )),
+              Center(
+                  child: Text(
+                "${track!.artist} - ${track!.song}",
+                style: TextStyle(
+                  fontSize: 20,
+                ),
+              ))
+            ],
+          )
+        : Column(
+            children: [
+              Center(
+                  child: Text(
+                "Getting song info...",
+                style: TextStyle(
+                  fontSize: 20,
+                ),
+              ))
+            ],
+          );
   }
 }
