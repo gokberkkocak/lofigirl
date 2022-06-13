@@ -1,16 +1,48 @@
-# lofigirl_flutter_client
+# Lofi Girl Scrobbler 🎧 - Flutter Client
 
-A new Flutter project.
+Flutter frontend for the lofigirl server component.
 
-## Getting Started
+## Get Started
 
-This project is a starting point for a Flutter application.
+Check releases for the native builds. 
 
-A few resources to get you started if this is your first Flutter project:
+If you want to play around with the git version of the frontend:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+To build release version
+
+```
+flutter build <platform>
+```
+
+## Usage
+
+Sharing ideas from the rust wasm web client, flutter client has two page views: main and settings.
+
+- Initial home page:
+
+![home](images/before_login.png)
+
+- Initial settings page:
+
+![settings](images/empty_settings.png)
+
+- Filling the settings:
+
+![home](images/filled_settings.png)
+
+- After connected to the server:
+
+![home](images/ready.png)
+
+- Scrobbling to LastFM and ListenBrainz:
+
+![example scrobble](images/example_song.png)
+
+![example scrobble to lastfm](images/example_song_lastfm.png)
+
+![example scrobble to listenbrainz](images/example_song_listenbrainz.png)
