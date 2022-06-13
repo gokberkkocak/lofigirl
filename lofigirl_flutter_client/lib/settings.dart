@@ -102,7 +102,9 @@ class LastFmSettings extends StatelessWidget {
                     padding: EdgeInsets.only(top: 10),
                     child: ElevatedButton(
                       child: const Text('Delete Session Key'),
-                      onPressed: onLastFMSessionKeyDeleted,
+                      onPressed: (sessionToken == null)
+                          ? onLastFMSessionKeyDeleted
+                          : null,
                     ))
               ]);
   }
