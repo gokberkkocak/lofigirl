@@ -139,7 +139,6 @@ jobs:
       run: | 
        cd lofigirl_flutter_client
        flutter pub get
-       flutter test
        flutter build web
     - name: Make Zip
       run: 
@@ -168,7 +167,6 @@ jobs:
         cd lofigirl_flutter_client
         flutter config --enable-windows-desktop
         flutter pub get
-        flutter test
         flutter build web
     - name: Make Zip
       run: 
@@ -183,7 +181,7 @@ jobs:
         asset_path: ${{ github.workspace }}/lofigirl-flutter-windows-client.zip
         asset_name: lofigirl-flutter-windows-client.zip
         asset_content_type: application/octet-stream  
- build_flutter_frontend_android:
+    build_flutter_frontend_android:
     name: Create flutter android
     needs: once
     runs-on: ubuntu-latest
@@ -200,7 +198,6 @@ jobs:
       run: |
         cd lofigirl_flutter_client
         flutter pub get
-        flutter test
         flutter build apk
     - name: Move APK
       run: 
