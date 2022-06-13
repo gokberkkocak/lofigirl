@@ -12,12 +12,13 @@ This project uses ```opencv``` library to capture/process images and ```tesserac
 
 This project includes different modules and several features which you can choose according to your preference. The list of binaries/frontend which are compiled on releases are:
 
-- Lofigirl Server - A http broadcasting server module which does the image 
-processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It also keeps user sessions and sends the listening information to multiple backends.
-- Lofigirl Client - Includes Optional multi-os notification system.
-    - Default Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to communicate with the ```server``` module.
+- Lofigirl Server - A REST API http broadcasting server module which does the image 
+processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It keeps user sessions and sends the listening information to multiple backends.
+- Lofigirl CLI Client - Includes Optional multi-os notification system.
+    - Default Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to communicate with the ```server``` module using the REST API.
     - Standalone - The standalone version which does the images processing/OCR and sends the listening information data on a regular interval. Requires all the dependencies to be present in the system.
-- Lofigirl Web Client - Compiled to wasm, runs on browser and communicates with the ```server``` side.
+- Lofigirl Web Client - Compiled to wasm, runs on browser and communicates with the ```server``` module using the REST API.
+- Lofigirl Flutter Client - Flutter multi platform front-end that communicates with the ```server``` module using the REST API.
 
 ## Installing all dependencies
 
@@ -69,7 +70,7 @@ Compile all;
 cargo build --release
 ```
 
-Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) and [web-client](lofigirl_web_client/README.md) for more information on specific module.
+Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md), [web-client](lofigirl_web_client/README.md) and [flutter-client](lofigirl_flutter_client/README.md) for more information on specific module.
 
 ## Configuration
 
