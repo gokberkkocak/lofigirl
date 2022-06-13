@@ -44,16 +44,25 @@ class _LofiGirlState extends State<LofiGirl> {
   String? _lastFmUsername;
   LofiStream? _lofiStreamName;
   int _seenCount = 0;
+  Timer? _timer;
 
   @override
   void initState() {
-    Timer.periodic(Duration(seconds: 15), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 15), (timer) {
       if (_isScrobbling) {
         _scrobble();
       }
     });
     super.initState();
     _loadValues();
+  }
+
+  // Before removing the widget, we need to stop the timer.
+  // Timer is guaranteed to be not null since initState() sets it.
+  @override
+  void dispose() {
+    _timer!.cancel();
+    super.dispose();
   }
 
   void _loadValues() async {

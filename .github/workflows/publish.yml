@@ -126,3 +126,54 @@ jobs:
         asset_path: ${{ github.workspace }}/lofigirl-web-client.zip
         asset_name: lofigirl-web-client.zip
         asset_content_type: application/octet-stream    
+  build_flutter_frontend_web:
+    name: Create flutter web
+    needs: once
+    runs-on: ubuntu-latest
+    steps:  
+    - uses: actions/checkout@v3
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+    - run: flutter pub get
+    - run: flutter test
+    - run: flutter build web
+    - name: Make Zip
+      run: 
+        7z a -tzip ${{ github.workspace }}/lofigirl-web-client.zip ${{ github.workspace }}/lofigirl_web_client/index.html ${{ github.workspace }}/lofigirl_flutter_client/build/web/
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.once.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/lofigirl-web-client.zip
+        asset_name: lofigirl-web-client.zip
+        asset_content_type: application/octet-stream  
+  build_flutter_frontend_web:
+    name: Create flutter windows
+    needs: once
+    runs-on: windows-latest
+    steps:  
+    - uses: actions/checkout@v3
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+    - run: flutter config --enable-windows-desktop
+    - run: flutter pub get
+    - run: flutter test
+    - run: flutter build windows
+    - name: Make Zip
+      run: 
+        7z a -tzip ${{ github.workspace }}/lofigirl-web-client.zip ${{ github.workspace }}/lofigirl_web_client/index.html ${{ github.workspace }}/lofigirl_flutter_client/build/windows/runner/Release/
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.once.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/lofigirl-web-client.zip
+        asset_name: lofigirl-web-client.zip
+        asset_content_type: application/octet-stream  
