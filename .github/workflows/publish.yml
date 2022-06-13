@@ -135,9 +135,12 @@ jobs:
     - uses: subosito/flutter-action@v2
       with:
         channel: 'stable'
-    - run: flutter pub get
-    - run: flutter test
-    - run: flutter build web
+    - name: Build release version
+      run: | 
+       cd lofigirl_flutter_client
+       flutter pub get
+       flutter test
+       flutter build web
     - name: Make Zip
       run: 
         7z a -tzip ${{ github.workspace }}/lofigirl-flutter-web-client.zip  ${{ github.workspace }}/lofigirl_flutter_client/build/web/
@@ -160,10 +163,13 @@ jobs:
     - uses: subosito/flutter-action@v2
       with:
         channel: 'stable'
-    - run: flutter config --enable-windows-desktop
-    - run: flutter pub get
-    - run: flutter test
-    - run: flutter build windows
+    - name: Build release version
+      run: |
+        cd lofigirl_flutter_client
+        flutter config --enable-windows-desktop
+        flutter pub get
+        flutter test
+        flutter build web
     - name: Make Zip
       run: 
         7z a -tzip ${{ github.workspace }}/lofigirl-flutter-windows-client.zip ${{ github.workspace }}/lofigirl_flutter_client/build/windows/runner/Release/
@@ -176,4 +182,36 @@ jobs:
         upload_url: ${{ needs.once.outputs.upload_url }}
         asset_path: ${{ github.workspace }}/lofigirl-flutter-windows-client.zip
         asset_name: lofigirl-flutter-windows-client.zip
+        asset_content_type: application/octet-stream  
+ build_flutter_frontend_android:
+    name: Create flutter android
+    needs: once
+    runs-on: ubuntu-latest
+    steps:  
+    - uses: actions/checkout@v3
+    - uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+    - name: Build release version
+      run: |
+        cd lofigirl_flutter_client
+        flutter pub get
+        flutter test
+        flutter build apk
+    - name: Move APK
+      run: 
+        mv ${{ github.workspace }}/lofigirl_flutter_client/build/app/outputs/flutter-apk/app-release.apk ${{ github.workspace }}/lofigirl-flutter-android-client.apk
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.once.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/lofigirl-flutter-android-client.apk
+        asset_name: lofigirl-flutter-android-client.apk
         asset_content_type: application/octet-stream  
