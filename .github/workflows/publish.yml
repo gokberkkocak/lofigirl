@@ -140,7 +140,7 @@ jobs:
     - run: flutter build web
     - name: Make Zip
       run: 
-        7z a -tzip ${{ github.workspace }}/lofigirl-web-client.zip ${{ github.workspace }}/lofigirl_web_client/index.html ${{ github.workspace }}/lofigirl_flutter_client/build/web/
+        7z a -tzip ${{ github.workspace }}/lofigirl-flutter-web-client.zip  ${{ github.workspace }}/lofigirl_flutter_client/build/web/
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
@@ -148,8 +148,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/lofigirl-web-client.zip
-        asset_name: lofigirl-web-client.zip
+        asset_path: ${{ github.workspace }}/lofigirl-flutter-web-client.zip
+        asset_name: lofigirl-flutter-web-client.zip
         asset_content_type: application/octet-stream  
   build_flutter_frontend_windows:
     name: Create flutter windows
@@ -166,7 +166,7 @@ jobs:
     - run: flutter build windows
     - name: Make Zip
       run: 
-        7z a -tzip ${{ github.workspace }}/lofigirl-web-client.zip ${{ github.workspace }}/lofigirl_web_client/index.html ${{ github.workspace }}/lofigirl_flutter_client/build/windows/runner/Release/
+        7z a -tzip ${{ github.workspace }}/lofigirl-flutter-windows-client.zip ${{ github.workspace }}/lofigirl_flutter_client/build/windows/runner/Release/
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
@@ -174,6 +174,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/lofigirl-web-client.zip
-        asset_name: lofigirl-web-client.zip
+        asset_path: ${{ github.workspace }}/lofigirl-flutter-windows-client.zip
+        asset_name: lofigirl-flutter-windows-client.zip
         asset_content_type: application/octet-stream  
