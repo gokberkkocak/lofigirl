@@ -42,15 +42,15 @@ jobs:
         cargo install cargo-make
         cd lofigirl_web_client
         cargo make build
-          build_frontend:
-  name: Build flutter frontend
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-    - uses: actions/checkout@v3
-    - uses: subosito/flutter-action@v2
-      with:
-        channel: 'stable'
-    - run: flutter pub get
-    - run: flutter test
-    - run: flutter build web
+  build_flutter_frontend:
+    name: Build flutter frontend
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter test
+      - run: flutter build web
