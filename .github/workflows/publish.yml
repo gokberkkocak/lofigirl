@@ -151,7 +151,7 @@ jobs:
         asset_path: ${{ github.workspace }}/lofigirl-web-client.zip
         asset_name: lofigirl-web-client.zip
         asset_content_type: application/octet-stream  
-  build_flutter_frontend_web:
+  build_flutter_frontend_windows:
     name: Create flutter windows
     needs: once
     runs-on: windows-latest
