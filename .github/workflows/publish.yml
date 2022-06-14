@@ -101,7 +101,7 @@ jobs:
         asset_path: ${{ github.workspace }}/target/release/lofigirl-with-notifications-${{ matrix.os }}.zip
         asset_name: lofigirl-with-notifications-${{ matrix.os }}.zip
         asset_content_type: application/octet-stream
-  build_frontend:
+  build_wasm_frontend:
     name: Create single platform wasm
     needs: once
     runs-on: ubuntu-latest
@@ -115,7 +115,7 @@ jobs:
         cargo make build_release
     - name: Make Zip
       run: 
-        7z a -tzip ${{ github.workspace }}/lofigirl-web-client.zip ${{ github.workspace }}/lofigirl_web_client/index.html ${{ github.workspace }}/lofigirl_web_client/pkg/
+        7z a -tzip ${{ github.workspace }}/lofigirl-wasm-web-client.zip ${{ github.workspace }}/lofigirl_web_client/index.html ${{ github.workspace }}/lofigirl_web_client/pkg/
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
@@ -123,8 +123,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/lofigirl-web-client.zip
-        asset_name: lofigirl-web-client.zip
+        asset_path: ${{ github.workspace }}/lofigirl-wasm-web-client.zip
+        asset_name: lofigirl-wasm-web-client.zip
         asset_content_type: application/octet-stream    
   build_flutter_frontend_web:
     name: Create flutter web
@@ -167,7 +167,7 @@ jobs:
         cd lofigirl_flutter_client
         flutter config --enable-windows-desktop
         flutter pub get
-        flutter build web
+        flutter build windows
     - name: Make Zip
       run: 
         7z a -tzip ${{ github.workspace }}/lofigirl-flutter-windows-client.zip ${{ github.workspace }}/lofigirl_flutter_client/build/windows/runner/Release/
@@ -211,4 +211,36 @@ jobs:
         upload_url: ${{ needs.once.outputs.upload_url }}
         asset_path: ${{ github.workspace }}/lofigirl-flutter-android-client.apk
         asset_name: lofigirl-flutter-android-client.apk
+        asset_content_type: application/octet-stream  
+  build_flutter_frontend_linux:
+    name: Create flutter linux
+    needs: once
+    runs-on: ubuntu-latest
+    steps:  
+    - uses: actions/checkout@v3
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+    - name: Get build dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y ninja-build libgtk-3-dev
+    - name: Build release version
+      run: |    
+        cd lofigirl_flutter_client
+        flutter config --enable-linux-desktop
+        flutter pub get
+        flutter build linux
+    - name: Make Zip
+      run: 
+        7z a -tzip ${{ github.workspace }}/lofigirl-flutter-linux-client.zip ${{ github.workspace }}/lofigirl_flutter_client/build/linux/x64/release/bundle/
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.once.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/lofigirl-flutter-linux-client.zip
+        asset_name: lofigirl-flutter-linux-client.zip
         asset_content_type: application/octet-stream  
