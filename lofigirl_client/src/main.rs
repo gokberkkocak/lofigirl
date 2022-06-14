@@ -5,24 +5,24 @@ use anyhow::Result;
 use config::Config;
 use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use std::path::PathBuf;
-use structopt::StructOpt;
+use clap::Parser;
 use worker::Worker;
 
 #[cfg(not(feature = "standalone"))]
-const APP_NAME: &str = "lofigirl";
+const APP_NAME: &str = "lofigirl_client";
 
 #[cfg(feature = "standalone")]
-const APP_NAME: &str = "lofigirl_standalone";
+const APP_NAME: &str = "lofigirl_client_standalone";
 
 /// Scrobble the tracks you listen on lofigirl streams.
-#[derive(StructOpt, Debug)]
-#[structopt(name = APP_NAME)]
+#[derive(Parser, Debug)]
+#[clap(name = APP_NAME, author, version, about, long_about = None)]
 struct Opt {
     /// Configuration toml file.
-    #[structopt(short, long, default_value = "config.toml")]
+    #[clap(short, long, value_parser, default_value = "config.toml")]
     config: PathBuf,
     /// Use second video link for listen info
-    #[structopt(short, long)]
+    #[clap(short, long, value_parser)]
     second: bool,
 }
 
