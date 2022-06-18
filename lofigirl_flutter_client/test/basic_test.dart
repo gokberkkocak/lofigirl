@@ -13,7 +13,7 @@ import 'package:lofigirl_flutter_client/main.dart';
 void main() {
   testWidgets('App initial page test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const LofiGirl());
+    await tester.pumpWidget(const LofiGirlWithScaffold());
 
     expect(find.text("Let's get started!"), findsOneWidget);
     expect(find.text('Pikachu'), findsNothing);
