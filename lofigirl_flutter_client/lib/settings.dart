@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 
 class ServerSettings extends StatelessWidget {
-  String? serverUrl;
-  String? sessionToken;
-  Function(String) onServerUrlChanged;
-  ServerSettings(this.serverUrl, this.sessionToken, this.onServerUrlChanged);
+  final String? serverUrl;
+  final String? sessionToken;
+  final Function(String) onServerUrlChanged;
+  const ServerSettings(
+      this.serverUrl, this.sessionToken, this.onServerUrlChanged);
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +24,10 @@ class ServerSettings extends StatelessWidget {
 }
 
 class ListenBrainzSettings extends StatelessWidget {
-  String? listenBrainzToken;
-  String? sessionToken;
-  Function(String) onListenBrainzTokenChanged;
-  ListenBrainzSettings(this.listenBrainzToken, this.sessionToken,
+  final String? listenBrainzToken;
+  final String? sessionToken;
+  final Function(String) onListenBrainzTokenChanged;
+  const ListenBrainzSettings(this.listenBrainzToken, this.sessionToken,
       this.onListenBrainzTokenChanged);
 
   @override
@@ -45,13 +46,13 @@ class ListenBrainzSettings extends StatelessWidget {
 }
 
 class LastFmSettings extends StatelessWidget {
-  String? lastFmUsername;
-  String? lastFMSessionKey;
-  String? sessionToken;
-  Function(String) onLastFMUsernameChanged;
-  Function(String) onLastFMPasswordChanged;
-  Function() onLastFMSessionKeyDeleted;
-  LastFmSettings(
+  final String? lastFmUsername;
+  final String? lastFMSessionKey;
+  final String? sessionToken;
+  final Function(String) onLastFMUsernameChanged;
+  final Function(String) onLastFMPasswordChanged;
+  final Function() onLastFMSessionKeyDeleted;
+  const LastFmSettings(
       this.lastFmUsername,
       this.lastFMSessionKey,
       this.sessionToken,
@@ -99,12 +100,12 @@ class LastFmSettings extends StatelessWidget {
                   controller: TextEditingController(text: lastFMSessionKey),
                 ),
                 Padding(
-                    padding: EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.only(top: 10),
                     child: ElevatedButton(
-                      child: const Text('Delete Session Key'),
                       onPressed: (sessionToken == null)
                           ? onLastFMSessionKeyDeleted
                           : null,
+                      child: const Text('Delete Session Key'),
                     ))
               ]);
   }
