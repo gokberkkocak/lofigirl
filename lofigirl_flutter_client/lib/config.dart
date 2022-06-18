@@ -11,26 +11,26 @@ class LastFMClientPasswordConfig {
 }
 
 class SessionRequest {
-  final LastFMClientPasswordConfig password_config;
-  SessionRequest(this.password_config);
+  final LastFMClientPasswordConfig passwordConfig;
+  SessionRequest(this.passwordConfig);
 
   Map<String, dynamic> toJson() => {
-        'password_config': password_config.toJson(),
+        'password_config': passwordConfig.toJson(),
       };
 }
 
 class TokenRequest {
-  final String? lastfm_session_key;
-  final String? listenbrainz_token;
-  TokenRequest(this.lastfm_session_key, this.listenbrainz_token);
+  final String? lastfmSessionKey;
+  final String? listenbrainzToken;
+  TokenRequest(this.lastfmSessionKey, this.listenbrainzToken);
 
   Map toJson() => {
-        'lastfm_session_key': lastfm_session_key,
-        'listenbrainz_token': listenbrainz_token,
+        'lastfm_session_key': lastfmSessionKey,
+        'listenbrainz_token': listenbrainzToken,
       };
 }
 
-enum LofiStream { Chill, Sleep }
+enum LofiStream { chill, sleep }
 
 class Track {
   final String artist;

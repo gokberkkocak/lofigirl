@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:lofigirl_flutter_client/config.dart';
@@ -20,8 +19,11 @@ class LofiGirlWithScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'LofiGirl Scrobbler Client',
-      home: Scaffold(
-        body: const LofiGirl(),
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.system,
+      home: const Scaffold(
+        body: LofiGirl(),
       ),
     );
   }
@@ -48,7 +50,7 @@ class _LofiGirlState extends State<LofiGirl> {
 
   @override
   void initState() {
-    _timer = Timer.periodic(Duration(seconds: 15), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 15), (timer) {
       if (_isScrobbling) {
         _scrobble();
       }
@@ -105,7 +107,7 @@ class _LofiGirlState extends State<LofiGirl> {
   }
 
   Future<Track?> _getTrack() async {
-    var endPoint = (_lofiStreamName == LofiStream.Chill) ? "chill" : "sleep";
+    var endPoint = (_lofiStreamName == LofiStream.chill) ? "chill" : "sleep";
     final url = Uri.parse('$_serverUrl/track/$endPoint');
     developer.log('GET $url', name: 'LofiGirl');
     if (url.isAbsolute) {
@@ -155,13 +157,13 @@ class _LofiGirlState extends State<LofiGirl> {
             _serverUrl = value;
             prefs.setString("serverUrl", value);
             const snackBar = SnackBar(
-              content: const Text('Server is set!'),
+              content: Text('Server is set!'),
             );
             ScaffoldMessenger.of(context).showSnackBar(snackBar);
           });
         } else {
           const snackBar = SnackBar(
-            content: const Text('Server did not respond correctly!'),
+            content: Text('Server did not respond correctly!'),
           );
           ScaffoldMessenger.of(context).showSnackBar(snackBar);
         }
@@ -236,8 +238,8 @@ class _LofiGirlState extends State<LofiGirl> {
       _lastFmSessionKey = null;
       prefs.remove('lastFmSessionKey');
     });
-    final snackBar = SnackBar(
-      content: const Text('Last.fm session key is deleted!'),
+    var snackBar = const SnackBar(
+      content: Text('Last.fm session key is deleted!'),
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
@@ -285,109 +287,107 @@ class _LofiGirlState extends State<LofiGirl> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: DefaultTabController(
-        length: 2,
-        child: Scaffold(
-          appBar: AppBar(
-            bottom: const TabBar(
-              tabs: [
-                Tab(icon: Icon(Icons.music_note)),
-                Tab(icon: Icon(Icons.settings)),
-              ],
-            ),
-            title: const Text('LofiGirl Scrobbler Client'),
-          ),
-          body: TabBarView(
-            children: [
-              Scaffold(
-                  body: (_isScrobbling)
-                      ? ListView(
-                          padding: const EdgeInsets.all(8),
-                          children: [
-                            ListeningInfo(_currentTrack),
-                            Padding(
-                                padding: EdgeInsets.only(top: 10),
-                                child: ElevatedButton.icon(
-                                  label: const Text('Stop scrobbling!'),
-                                  icon: const Icon(Icons.stop),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isScrobbling = false;
-                                      _currentTrack = null;
-                                    });
-                                  },
-                                ))
-                          ],
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.all(8),
-                          children: (_sessionToken != null)
-                              ? [
-                                  Center(
-                                      child: Text(
-                                          "Which steam are you listening right now?",
-                                          style: TextStyle(fontSize: 20))),
-                                  RadioListTile(
-                                    title: const Text('Chill Stream'),
-                                    value: LofiStream.Chill,
-                                    groupValue: _lofiStreamName,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _lofiStreamName = LofiStream.Chill;
-                                      });
-                                    },
-                                  ),
-                                  RadioListTile(
-                                    title: const Text('Sleep Stream'),
-                                    value: LofiStream.Sleep,
-                                    groupValue: _lofiStreamName,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _lofiStreamName = LofiStream.Sleep;
-                                      });
-                                    },
-                                  ),
-                                  Padding(
-                                      padding: EdgeInsets.only(top: 10),
-                                      child: ElevatedButton.icon(
-                                        label: const Text('Start scrobbling!'),
-                                        icon: const Icon(Icons.play_arrow),
-                                        onPressed: () {
-                                          setState(() {
-                                            _isScrobbling = true;
-                                          });
-                                        },
-                                      ))
-                                ]
-                              : [
-                                  Center(
-                                      child: Text("Let's get started!",
-                                          style: TextStyle(fontSize: 20))),
-                                  SetSettingsButton()
-                                ])),
-              Scaffold(
-                  body: ListView(padding: const EdgeInsets.all(8), children: [
-                ServerSettings(_serverUrl, _sessionToken, onServerUrlChanged),
-                ListenBrainzSettings(_listenBrainzToken, _sessionToken,
-                    onListenBrainzTokenChanged),
-                LastFmSettings(
-                    _lastFmUsername,
-                    _lastFmSessionKey,
-                    _sessionToken,
-                    onLastFmUsernameChanged,
-                    onLastFmPasswordChanged,
-                    onLastFmSessionKeyDeleted),
-                LofiGirlToken(
-                    _sessionToken,
-                    onSessionTokenRequested,
-                    onSessionTokenDeleted,
-                    (((_lastFmSessionKey != null) ||
-                            (_listenBrainzToken != null)) &&
-                        (_serverUrl != null))),
-              ]))
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.music_note)),
+              Tab(icon: Icon(Icons.settings)),
             ],
           ),
+          title: const Text('LofiGirl Scrobbler Client'),
+        ),
+        body: TabBarView(
+          children: [
+            Scaffold(
+                body: (_isScrobbling)
+                    ? ListView(
+                        padding: const EdgeInsets.all(8),
+                        children: [
+                          ListeningInfo(_currentTrack),
+                          Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: ElevatedButton.icon(
+                                label: const Text('Stop scrobbling!'),
+                                icon: const Icon(Icons.stop),
+                                onPressed: () {
+                                  setState(() {
+                                    _isScrobbling = false;
+                                    _currentTrack = null;
+                                  });
+                                },
+                              ))
+                        ],
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.all(8),
+                        children: (_sessionToken != null)
+                            ? [
+                                const Center(
+                                    child: Text(
+                                        "Which steam are you listening right now?",
+                                        style: TextStyle(fontSize: 20))),
+                                RadioListTile(
+                                  title: const Text('Chill Stream'),
+                                  value: LofiStream.chill,
+                                  groupValue: _lofiStreamName,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _lofiStreamName = LofiStream.chill;
+                                    });
+                                  },
+                                ),
+                                RadioListTile(
+                                  title: const Text('Sleep Stream'),
+                                  value: LofiStream.sleep,
+                                  groupValue: _lofiStreamName,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _lofiStreamName = LofiStream.sleep;
+                                    });
+                                  },
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.only(top: 10),
+                                    child: ElevatedButton.icon(
+                                      label: const Text('Start scrobbling!'),
+                                      icon: const Icon(Icons.play_arrow),
+                                      onPressed: () {
+                                        setState(() {
+                                          _isScrobbling = true;
+                                        });
+                                      },
+                                    ))
+                              ]
+                            : [
+                                const Center(
+                                    child: Text("Let's get started!",
+                                        style: TextStyle(fontSize: 20))),
+                                SetSettingsButton()
+                              ])),
+            Scaffold(
+                body: ListView(padding: const EdgeInsets.all(8), children: [
+              ServerSettings(_serverUrl, _sessionToken, onServerUrlChanged),
+              ListenBrainzSettings(_listenBrainzToken, _sessionToken,
+                  onListenBrainzTokenChanged),
+              LastFmSettings(
+                  _lastFmUsername,
+                  _lastFmSessionKey,
+                  _sessionToken,
+                  onLastFmUsernameChanged,
+                  onLastFmPasswordChanged,
+                  onLastFmSessionKeyDeleted),
+              LofiGirlToken(
+                  _sessionToken,
+                  onSessionTokenRequested,
+                  onSessionTokenDeleted,
+                  (((_lastFmSessionKey != null) ||
+                          (_listenBrainzToken != null)) &&
+                      (_serverUrl != null))),
+            ]))
+          ],
         ),
       ),
     );
@@ -398,10 +398,10 @@ class SetSettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.only(top: 10),
         child: ElevatedButton.icon(
-            icon: Icon(Icons.settings),
-            label: Text('Get connected!'),
+            icon: const Icon(Icons.settings),
+            label: const Text('Get connected!'),
             onPressed: () {
               DefaultTabController.of(context)!.animateTo(1);
             }));
@@ -417,21 +417,21 @@ class ListeningInfo extends StatelessWidget {
     return track != null
         ? Column(
             children: [
-              Center(
+              const Center(
                   child: Text(
                 "Now playing",
               )),
               Center(
                   child: Text(
                 "${track!.artist} - ${track!.song}",
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 20,
                 ),
               ))
             ],
           )
         : Column(
-            children: [
+            children: const [
               Center(
                   child: Text(
                 "Getting song info...",
