@@ -2630,9 +2630,9 @@ dependencies = [
 
 [[package]]
 name = "rustube"
-version = "0.3.8"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c8bb00386d4625dbf43a0f5ee5497af2ce9c48b92fca8d3f0d60872785b8002"
+checksum = "541f4b57ff09eab5ca234aa4aef493f81ed151cace14e1ff07d5a71b1e6bf3bc"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -2642,8 +2642,10 @@ dependencies = [
  "log",
  "log-derive",
  "mime",
+ "once_cell",
  "regex",
  "reqwest",
+ "rustc_version 0.4.0",
  "serde",
  "serde_json",
  "serde_qs",
