@@ -12,7 +12,7 @@ RUN pacman --noconfirm -Syu
 
 RUN pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract clang rustup sqlite
 
-RUN rustup toolchain install stable
+RUN rustup toolchain install nightly
 
 RUN sqlite3 token.db < migrations/20210525000135_table.sql 
 
