@@ -10,7 +10,7 @@ edition = "2021"
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 opencv = { version = "0.65", features = ["clang-runtime"]}
 ytextract = { version = "0.11", optional = true}
-rustube = "0.4"
+rustube = "0.5"
 leptess = "0.13"
 anyhow = "1.0"
 thiserror = "1.0"
