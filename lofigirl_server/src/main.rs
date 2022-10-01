@@ -5,20 +5,18 @@ mod worker;
 
 use server::LofiServer;
 use std::path::PathBuf;
-use structopt::StructOpt;
 use worker::ServerWorker;
-
+use clap::Parser;
 use crate::config::ServerConfig;
 
 /// Scrobble the tracks you listen on lofigirl streams.
-#[derive(StructOpt, Debug)]
-#[structopt(name = "lofigirl_server")]
-struct Opt {
+#[derive(Parser, Debug)]
+#[clap(name = APP_NAME, author, version, about, long_about = None)]struct Opt {
     /// Configuration toml file.
-    #[structopt(short, long, default_value = "config.toml")]
+    #[clap(short, long, value_parser, default_value = "config.toml")]
     config: PathBuf,
     /// Only provide information for the first given link.
-    #[structopt(short, long)]
+    #[clap(short, long, value_parser)]
     only_first: bool,
 }
 
