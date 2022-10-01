@@ -35,7 +35,7 @@ fn main() -> Result<()> {
 
 async fn body() -> Result<()> {
     tracing_subscriber::fmt::init();
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let mut config = Config::from_toml(&opt.config).await?;
     let (mut worker, changed) = Worker::new(&mut config, opt.second).await?;
     if changed {
