@@ -2,10 +2,10 @@ mod config;
 mod worker;
 
 use anyhow::Result;
+use clap::Parser;
 use config::Config;
 use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use std::path::PathBuf;
-use clap::Parser;
 use worker::Worker;
 
 #[cfg(not(feature = "standalone"))]

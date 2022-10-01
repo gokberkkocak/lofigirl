@@ -3,15 +3,18 @@ mod server;
 mod session;
 mod worker;
 
+use crate::config::ServerConfig;
+use clap::Parser;
 use server::LofiServer;
 use std::path::PathBuf;
 use worker::ServerWorker;
-use clap::Parser;
-use crate::config::ServerConfig;
+
+const APP_NAME: &str = "lofigirl_server";
 
 /// Scrobble the tracks you listen on lofigirl streams.
 #[derive(Parser, Debug)]
-#[clap(name = APP_NAME, author, version, about, long_about = None)]struct Opt {
+#[clap(name = APP_NAME, author, version, about, long_about = None)]
+struct Opt {
     /// Configuration toml file.
     #[clap(short, long, value_parser, default_value = "config.toml")]
     config: PathBuf,
