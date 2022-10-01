@@ -2,10 +2,10 @@ mod config;
 mod worker;
 
 use anyhow::Result;
+use clap::Parser;
 use config::Config;
 use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use std::path::PathBuf;
-use clap::Parser;
 use worker::Worker;
 
 #[cfg(not(feature = "standalone"))]
@@ -35,7 +35,7 @@ fn main() -> Result<()> {
 
 async fn body() -> Result<()> {
     tracing_subscriber::fmt::init();
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let mut config = Config::from_toml(&opt.config).await?;
     let (mut worker, changed) = Worker::new(&mut config, opt.second).await?;
     if changed {

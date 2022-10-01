@@ -3,29 +3,30 @@ mod server;
 mod session;
 mod worker;
 
+use crate::config::ServerConfig;
+use clap::Parser;
 use server::LofiServer;
 use std::path::PathBuf;
-use structopt::StructOpt;
 use worker::ServerWorker;
 
-use crate::config::ServerConfig;
+const APP_NAME: &str = "lofigirl_server";
 
 /// Scrobble the tracks you listen on lofigirl streams.
-#[derive(StructOpt, Debug)]
-#[structopt(name = "lofigirl_server")]
+#[derive(Parser, Debug)]
+#[clap(name = APP_NAME, author, version, about, long_about = None)]
 struct Opt {
     /// Configuration toml file.
-    #[structopt(short, long, default_value = "config.toml")]
+    #[clap(short, long, value_parser, default_value = "config.toml")]
     config: PathBuf,
     /// Only provide information for the first given link.
-    #[structopt(short, long)]
+    #[clap(short, long, value_parser)]
     only_first: bool,
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let config = ServerConfig::from_toml(&opt.config)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     let mut worker = ServerWorker::new(&config, opt.only_first)
