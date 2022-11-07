@@ -46,8 +46,6 @@ brew install opencv tesseract leptonica
 
 ## Compiling
 
-One of the crates [rustube](https://lib.rs/crates/rustube) in the project requires nightly compiler so the project only compiles on nightly compiler at the moment.
-
 Server side uses ```sqlx``` which does compile time query checking so a db must be present on the compilation time. To set the compile time db and run migrations;
 
 ```
