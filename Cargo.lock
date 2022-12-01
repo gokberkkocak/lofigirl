@@ -400,19 +400,17 @@ dependencies = [
 
 [[package]]
 name = "attohttpc"
-version = "0.17.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a8bda305457262b339322106c776e3fd21df860018e566eb6a5b1aa4b6ae02d"
+checksum = "b85f766c20e6ae766956f7a2fcc4e0931e79a7e1f48b29132b5d647021114914"
 dependencies = [
  "flate2",
  "http",
  "log",
  "native-tls",
- "openssl",
  "serde",
  "serde_json",
  "url",
- "wildmatch",
 ]
 
 [[package]]
@@ -1720,9 +1718,9 @@ dependencies = [
 
 [[package]]
 name = "listenbrainz"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa490e6ea2655b5ce1c481a8fbd60f365f4cd3903e418af7a4eb65ad74a2d78"
+checksum = "f40272a10d03d8e48b8d9686d90401199be8d7b70618049a90b79956b2627a43"
 dependencies = [
  "attohttpc",
  "serde",
@@ -3881,12 +3879,6 @@ dependencies = [
  "libc",
  "once_cell",
 ]
-
-[[package]]
-name = "wildmatch"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f44b95f62d34113cf558c93511ac93027e03e9c29a60dd0fd70e6e025c7270a"
 
 [[package]]
 name = "winapi"
