@@ -112,8 +112,8 @@ impl ActForListener for Action {
 
     fn act_for_listenbrainz(&self, listener: &ListenBrainz, track: &Track) -> Result<()> {
         match self {
-            Action::Listened => listener.listen(&track.artist, &track.song, "")?,
-            Action::PlayingNow => listener.playing_now(&track.artist, &track.song, "")?,
+            Action::Listened => listener.listen(&track.artist, &track.song, None)?,
+            Action::PlayingNow => listener.playing_now(&track.artist, &track.song, None)?,
         }
         Ok(())
     }
