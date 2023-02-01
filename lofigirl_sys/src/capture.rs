@@ -3,9 +3,9 @@ use thiserror::Error;
 use tracing::info;
 use url::Url;
 
-#[cfg(not(feature = "ytextract"))]
+#[cfg(not(feature = "use_ytextract"))]
 pub struct YoutubeLinkCapturer;
-#[cfg(not(feature = "ytextract"))]
+#[cfg(not(feature = "use_ytextract"))]
 impl YoutubeLinkCapturer {
     pub fn new() -> Self {
         YoutubeLinkCapturer
@@ -27,11 +27,11 @@ impl YoutubeLinkCapturer {
     }
 }
 
-#[cfg(feature = "ytextract")]
+#[cfg(feature = "use_ytextract")]
 pub struct YoutubeLinkCapturer {
     client: ytextract::Client,
 }
-#[cfg(feature = "ytextract")]
+#[cfg(feature = "use_ytextract")]
 impl YoutubeLinkCapturer {
     pub fn new() -> YoutubeLinkCapturer {
         YoutubeLinkCapturer {

@@ -18,4 +18,4 @@ url = "2.3"
 tracing = "0.1"
 
 [features]
-no_ytextract = ["ytextract"]
+use_ytextract = ["ytextract"]
