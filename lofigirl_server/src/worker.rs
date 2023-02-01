@@ -75,6 +75,6 @@ impl ServerWorker {
 
 #[derive(Error, Debug)]
 pub enum WorkerError {
-    #[error("Neither LastFM nor Listenbrainz config is given.")]
+    #[error("The second video link is missing in the config.")]
     MissingSecondLink,
 }
