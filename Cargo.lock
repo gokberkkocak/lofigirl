@@ -4174,9 +4174,9 @@ dependencies = [
 
 [[package]]
 name = "ytextract"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d23e95563efc0a066ac0e6491ecd7012940ef495ce050c9f09de145a034ccabf"
+checksum = "05fa23ed8e30fd11f0be289657a7f96d7b307704142ea921e56a4bb93debb39f"
 dependencies = [
  "async-stream",
  "base64 0.13.1",
