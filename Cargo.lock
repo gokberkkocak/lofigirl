@@ -1805,9 +1805,9 @@ checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
 
 [[package]]
 name = "listenbrainz"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8106205fa554ff3f0a4ac99873f0da320e4e480079bf959476b654bac8e1401"
+checksum = "cdffd96dc8485deba7a3ed4d766bbf1761cb50a3b99c4055857093dfea804df4"
 dependencies = [
  "attohttpc",
  "serde",
