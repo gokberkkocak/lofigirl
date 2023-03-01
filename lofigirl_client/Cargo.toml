@@ -19,7 +19,7 @@ thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 url = { version = "2.3", optional = true}
-notify-rust = { version = "4.7", optional = true }
+notify-rust = { version = "4.8", optional = true }
 
 
 [features]
