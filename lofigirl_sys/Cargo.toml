@@ -11,7 +11,7 @@ lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 opencv = "0.77"
 ytextract = { version = "0.11", optional = true}
 rustube = "0.6"
-leptess = "0.13"
+leptess = "0.14"
 anyhow = "1.0"
 thiserror = "1.0"
 url = "2.3"
