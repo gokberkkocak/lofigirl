@@ -17,8 +17,8 @@ impl TokenDB {
 
     pub async fn get_or_generate_token(
         &self,
-        lastfm_session_key: &Option<String>,
-        listenbrainz_token: &Option<String>,
+        lastfm_session_key: Option<&String>,
+        listenbrainz_token: Option<&String>,
     ) -> Result<String> {
         (lastfm_session_key.is_some() || listenbrainz_token.is_some())
             .then(|| ())

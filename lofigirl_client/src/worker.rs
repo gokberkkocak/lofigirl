@@ -128,7 +128,8 @@ impl Worker {
                     .video
                     .as_ref()
                     .ok_or(ConfigError::EmptyVideoConfig)?
-                    .second_link
+                    .links
+                    .get(1)
                     .as_ref()
                     .ok_or(WorkerError::MissingSecondVideoLink)?,
             )?
@@ -138,7 +139,9 @@ impl Worker {
                     .video
                     .as_ref()
                     .ok_or(ConfigError::EmptyVideoConfig)?
-                    .link,
+                    .links
+                    .get(0)
+                    .ok_or(ConfigError::EmptyVideoConfig)?,
             )?
         };
         let image_proc = ImageProcessor::new(video_url)?;

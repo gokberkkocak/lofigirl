@@ -36,8 +36,11 @@ cargo build --release -p lofigirl_server
 
 ```toml
 [video]
-link = "https::///www.youtube.com/something"
-second_link = "https::///www.youtube.com/something" # optional
+links = [
+    "https::///www.youtube.com/something",
+    "https::///www.youtube.com/something", # optional
+    "https::///www.youtube.com/something", # optional
+]
 
 [server_settings]
 token_db = "token.db"

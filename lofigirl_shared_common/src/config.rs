@@ -38,8 +38,7 @@ pub struct ListenBrainzConfig {
 }
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VideoConfig {
-    pub link: String,
-    pub second_link: Option<String>,
+    pub links: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

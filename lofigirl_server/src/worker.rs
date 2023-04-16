@@ -1,6 +1,6 @@
 use crate::{config::ServerConfig, server::AppState};
 use actix_web::web;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use lofigirl_sys::image::ImageProcessor;
 use thiserror::Error;
@@ -8,36 +8,35 @@ use tracing::{info, warn};
 use url::Url;
 
 pub struct ServerWorker {
-    main_image_proc: ImageProcessor,
-    second_image_proc: Option<ImageProcessor>,
+    image_procs: Vec<ImageProcessor>,
     pub state: web::Data<AppState>,
 }
 
 impl ServerWorker {
-    pub async fn new(config: &ServerConfig, only_first: bool) -> Result<ServerWorker> {
-        let main_video_url = Url::parse(&config.video.link)?;
-        let main_image_proc = ImageProcessor::new(main_video_url)?;
-        let second_image_proc = if !only_first {
-            let second_video_url = Url::parse(
-                &config
-                    .video
-                    .second_link
-                    .as_ref()
-                    .ok_or(WorkerError::MissingSecondLink)?,
-            )?;
-            Some(ImageProcessor::new(second_video_url)?)
-        } else {
-            None
-        };
+    pub async fn new(config: &ServerConfig) -> Result<ServerWorker> {
+        if config.video.links.is_empty() {
+            bail!(WorkerError::NoVideoLink);
+        }
+        let image_procs = config
+            .video
+            .links
+            .iter()
+            .filter_map(|link| {
+                let video_url = Url::parse(&link).ok()?;
+                let image_proc = ImageProcessor::new(video_url).ok()?;
+                Some(image_proc)
+            })
+            .collect::<Vec<_>>();
         let state = web::Data::new(
-            AppState::new(config.lastfm_api.clone(), &config.server_settings.token_db).await?,
+            AppState::new(
+                config.lastfm_api.clone(),
+                &config.server_settings.token_db,
+                config.video.links.len(),
+            )
+            .await?,
         );
         info!("Server Worker initialized");
-        Ok(ServerWorker {
-            main_image_proc,
-            second_image_proc,
-            state,
-        })
+        Ok(ServerWorker { image_procs, state })
     }
 
     pub async fn loop_work(&mut self) {
@@ -61,13 +60,17 @@ impl ServerWorker {
     }
 
     async fn fragile_work(&mut self) -> Result<()> {
-        let next_track = self.main_image_proc.next_track().await?;
-        let mut lock = self.state.main_track.lock();
-        *lock = Some(next_track);
-        if let Some(second_image_proc) = &mut self.second_image_proc {
-            let second_next_track = second_image_proc.next_track().await?;
-            let mut lock = self.state.second_track.lock();
-            *lock = Some(second_next_track);
+        let mut lock = self.state.tracks.lock();
+        for (idx, image_proc) in self.image_procs.iter_mut().enumerate() {
+            let next_track = image_proc.next_track().await;
+            match next_track {
+                Ok(track) => {
+                    lock[idx] = Some(track);
+                }
+                Err(e) => {
+                    warn!("Problem with: {}", e);
+                }
+            }
         }
         Ok(())
     }
@@ -75,6 +78,6 @@ impl ServerWorker {
 
 #[derive(Error, Debug)]
 pub enum WorkerError {
-    #[error("The second video link is missing in the config.")]
-    MissingSecondLink,
+    #[error("There are no video links.")]
+    NoVideoLink,
 }
