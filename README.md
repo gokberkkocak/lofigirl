@@ -91,8 +91,11 @@ api_secret = "api_secret"
 token = "token"
 
 [video] # standalone client and server use, others ignore
-link = "https::///www.youtube.com/something"
-second_link = "https::///www.youtube.com/something" # optional
+links = [
+    "https::///www.youtube.com/something",
+    "https::///www.youtube.com/something", # optional
+    "https::///www.youtube.com/something", # optional
+]
 
 [server] # client only mandatory, others would ignore.
 link = "http://127.0.0.1:8080"

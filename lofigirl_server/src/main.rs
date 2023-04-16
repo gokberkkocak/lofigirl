@@ -18,9 +18,6 @@ struct Opt {
     /// Configuration toml file.
     #[clap(short, long, value_parser, default_value = "config.toml")]
     config: PathBuf,
-    /// Only provide information for the first given link.
-    #[clap(short, long, value_parser)]
-    only_first: bool,
 }
 
 #[actix_web::main]
@@ -29,7 +26,7 @@ async fn main() -> std::io::Result<()> {
     let opt = Opt::parse();
     let config = ServerConfig::from_toml(&opt.config)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-    let mut worker = ServerWorker::new(&config, opt.only_first)
+    let mut worker = ServerWorker::new(&config)
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     let state = worker.state.clone();

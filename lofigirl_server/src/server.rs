@@ -19,8 +19,9 @@ use thiserror::Error;
 
 pub struct AppState {
     pub lastfm_api: Mutex<Option<LastFMApiConfig>>,
-    pub main_track: Mutex<Option<Track>>,
-    pub second_track: Mutex<Option<Track>>,
+    pub tracks: Mutex<Vec<Option<Track>>>,
+    // pub main_track: Mutex<Option<Track>>,
+    // pub second_track: Mutex<Option<Track>>,
     pub token_db: Mutex<TokenDB>,
 }
 
@@ -28,34 +29,33 @@ impl AppState {
     pub async fn new(
         api: Option<LastFMApiConfig>,
         token_db_file: &str,
+        nb_links: usize
     ) -> anyhow::Result<AppState> {
         Ok(AppState {
             lastfm_api: Mutex::new(api),
-            main_track: Mutex::new(None),
-            second_track: Mutex::new(None),
+            tracks: Mutex::new(vec![None; nb_links]),
+            // main_track: Mutex::new(None),
+            // second_track: Mutex::new(None),
             token_db: Mutex::new(TokenDB::new(token_db_file).await?),
         })
     }
 }
-
-async fn get_main(data: web::Data<AppState>) -> Result<HttpResponse> {
-    let lock = data.main_track.lock();
-    let track = lock.clone();
-    if let Some(track) = track {
+async fn get_track_with_index(data: web::Data<AppState>, idx: usize) -> Result<HttpResponse> {
+    let lock = data.tracks.lock();
+    let tracks = lock.clone();
+    if let Some(track) = tracks.get(idx) {
         Ok(HttpResponse::Ok().json(track))
     } else {
         Ok(HttpResponse::NotFound().json(ServerResponseError::TrackNotAvailable))
     }
 }
 
+async fn get_main(data: web::Data<AppState>) -> Result<HttpResponse> {
+    get_track_with_index(data, 0).await
+}
+
 async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
-    let lock = data.second_track.lock();
-    let track = lock.clone();
-    if let Some(track) = track {
-        Ok(HttpResponse::Ok().json(track))
-    } else {
-        Ok(HttpResponse::NotFound().json(ServerResponseError::TrackNotAvailable))
-    }
+    get_track_with_index(data, 1).await
 }
 
 async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Result<HttpResponse> {
@@ -120,7 +120,7 @@ async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) -> Resu
     let info = info.into_inner();
     let token_db = data.token_db.lock();
     let token = token_db
-        .get_or_generate_token(&info.lastfm_session_key, &info.listenbrainz_token)
+        .get_or_generate_token(info.lastfm_session_key.as_ref(), info.listenbrainz_token.as_ref())
         .await
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
     Ok(HttpResponse::Ok().json(TokenResponse { token }))
