@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
-opencv = "0.79"
+opencv = "0.80"
 ytextract = { version = "0.11", optional = true}
 rustube = "0.6"
 leptess = "0.14"
