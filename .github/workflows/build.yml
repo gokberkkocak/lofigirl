@@ -3,8 +3,18 @@ name: Build on Pull Request
 on:  
   push:
     branches: [ main ]
+    paths:
+      - '**.rs'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - '**.dart'
   pull_request:
     branches: [ main ]
+    paths:
+      - '**.rs'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - '**.dart'
 
 env:
   CARGO_TERM_COLOR: always
