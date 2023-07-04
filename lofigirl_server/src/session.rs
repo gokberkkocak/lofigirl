@@ -42,7 +42,7 @@ impl TokenDB {
             lfm_id,
             lb_id
         )
-        .fetch_optional(&mut conn)
+        .fetch_optional(&mut *conn)
         .await?;
         match optional_token {
             Some(rec) => Ok(rec.token),
@@ -61,7 +61,7 @@ impl TokenDB {
                     lfm_id,
                     lb_id
                 )
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .await?
                 .rows_affected();
                 Ok(token_str)
@@ -77,7 +77,7 @@ impl TokenDB {
             "#,
             lastfm_session_key
         )
-        .fetch_optional(&mut conn)
+        .fetch_optional(&mut *conn)
         .await?;
         match optional_id {
             Some(rec) => Ok(rec.id),
@@ -89,7 +89,7 @@ impl TokenDB {
                     "#,
                     lastfm_session_key,
                 )
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .await?
                 .last_insert_rowid();
                 Ok(id)
@@ -105,7 +105,7 @@ impl TokenDB {
             "#,
             listenbrainz_token
         )
-        .fetch_optional(&mut conn)
+        .fetch_optional(&mut *conn)
         .await?;
         match optional_id {
             Some(rec) => Ok(rec.id),
@@ -117,7 +117,7 @@ impl TokenDB {
                     "#,
                     listenbrainz_token,
                 )
-                .execute(&mut conn)
+                .execute(&mut *conn)
                 .await?
                 .last_insert_rowid();
                 Ok(id)
@@ -140,7 +140,7 @@ impl TokenDB {
             "#,
             token_str
         )
-        .fetch_one(&mut conn)
+        .fetch_one(&mut *conn)
         .await?;
         let lb_config = if let Some(id) = rec.listenbrainz_id {
             Some(self.get_listenbrainz_config(id).await?)
@@ -164,7 +164,7 @@ impl TokenDB {
             "#,
             id
         )
-        .fetch_one(&mut conn)
+        .fetch_one(&mut *conn)
         .await?;
         Ok(ListenBrainzConfig { token: rec.token })
     }
@@ -178,7 +178,7 @@ impl TokenDB {
             "#,
             id
         )
-        .fetch_one(&mut conn)
+        .fetch_one(&mut *conn)
         .await?;
         Ok(LastFMClientSessionConfig {
             session_key: rec.session_key,
