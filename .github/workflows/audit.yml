@@ -11,6 +11,6 @@ jobs:
       - name: Setup | Checkout
         uses: actions/checkout@v3
       - name: Check | Audit
-        uses: actions-rs/audit-check@v1.2.0
+      - uses: rustsec/audit-check@v1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
