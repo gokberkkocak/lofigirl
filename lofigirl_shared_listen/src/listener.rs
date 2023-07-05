@@ -5,7 +5,7 @@ use lofigirl_shared_common::config::{
     LastFMApiConfig, LastFMClientConfig, LastFMClientSessionConfig, ListenBrainzConfig,
 };
 use lofigirl_shared_common::track::Track;
-use rustfm_scrobble::{Scrobble, Scrobbler};
+use rustfm_scrobble_proxy::{Scrobble, Scrobbler};
 use thiserror::Error;
 use tracing::info;
 
