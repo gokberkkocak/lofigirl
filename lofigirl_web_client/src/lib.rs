@@ -1,11 +1,5 @@
-// (Lines like the one below ignore selected Clippy rules
-//  - it's useful when you want to check your code with `cargo make verify`
-// but some rules are too "annoying" or are not applicable for your case.)
-#![allow(clippy::wildcard_imports)]
-
 mod storage;
 mod view;
-use std::convert::TryInto;
 
 use lofigirl_shared_common::{
     api::{Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse},
@@ -14,10 +8,16 @@ use lofigirl_shared_common::{
     CHILL_TRACK_API_END_POINT, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, REGULAR_INTERVAL,
     SEND_END_POINT, SLEEP_TRACK_API_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
 };
+
 #[cfg(debug_assertions)]
-use seed::log;
-use seed::prelude::web_sys::HtmlInputElement;
-use seed::prelude::*;
+use gloo_console::log;
+use gloo_net::http::{Method, Request};
+use seed::{
+    prelude::{cmds, wasm_bindgen, web_sys::HtmlInputElement, Orders},
+    virtual_dom::ElRef,
+    App, Url,
+};
+// use seed::prelude::*;
 
 // ------ ------
 //     Model
@@ -248,13 +248,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 async fn fetch_lastfm_session(
     url: &str,
     password_config: LastFMClientPasswordConfig,
-) -> fetch::Result<SessionResponse> {
-    let session_response = Request::new(url)
-        .method(Method::Post)
+) -> anyhow::Result<SessionResponse> {
+    let session_response = Request::post(url)
+        .method(Method::POST)
         .json(&SessionRequest { password_config })?
-        .fetch()
+        .send()
         .await?
-        .check_status()?
         .json()
         .await?;
     Ok(session_response)
@@ -264,17 +263,16 @@ async fn fetch_session_token(
     server: &str,
     lastfm_session_key: Option<String>,
     listenbrainz_token: Option<String>,
-) -> fetch::Result<TokenResponse> {
+) -> anyhow::Result<TokenResponse> {
     let url = format!("{}{}", server, TOKEN_END_POINT);
-    let token_response = Request::new(url)
-        .method(Method::Post)
+    let token_response = Request::post(&url)
+        .method(Method::POST)
         .json(&TokenRequest {
             lastfm_session_key,
             listenbrainz_token,
         })?
-        .fetch()
+        .send()
         .await?
-        .check_status()?
         .json()
         .await?;
     Ok(token_response)
@@ -285,21 +283,20 @@ async fn post_track_action(
     server: &str,
     track: Track,
     action: Action,
-) -> fetch::Result<()> {
-    Request::new(format!("{}{}", server, SEND_END_POINT))
-        .method(Method::Post)
+) -> anyhow::Result<()> {
+    Request::post(&format!("{}{}", server, SEND_END_POINT))
+        .method(Method::POST)
         .json(&ScrobbleRequest {
             action,
             track,
             token: token.to_owned(),
         })?
-        .fetch()
-        .await?
-        .check_status()?;
+        .send()
+        .await?;
     Ok(())
 }
 
-async fn fetch_track(server: &str, stream: LofiStream) -> fetch::Result<Track> {
+async fn fetch_track(server: &str, stream: LofiStream) -> anyhow::Result<Track> {
     let url = format!(
         "{}{}{}",
         server,
@@ -309,23 +306,18 @@ async fn fetch_track(server: &str, stream: LofiStream) -> fetch::Result<Track> {
             LofiStream::Sleep => SLEEP_TRACK_API_END_POINT,
         }
     );
-    let track = Request::new(url)
-        .method(Method::Get)
-        .fetch()
+    let track = Request::get(&url)
+        .method(Method::GET)
+        .send()
         .await?
-        .check_status()?
         .json()
         .await?;
     Ok(track)
 }
 
-async fn check_server_health(server: &str) -> fetch::Result<()> {
+async fn check_server_health(server: &str) -> anyhow::Result<()> {
     let url = format!("{}{}", server, HEALTH_END_POINT);
-    Request::new(url)
-        .method(Method::Get)
-        .fetch()
-        .await?
-        .check_status()?;
+    Request::get(&url).method(Method::GET).send().await?;
     Ok(())
 }
 
