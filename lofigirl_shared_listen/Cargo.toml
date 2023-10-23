@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 lofigirl_shared_common = {path = "../lofigirl_shared_common"}
 notify-rust = { version = "4.8", optional = true }
-rustfm-scrobble-proxy = "1.1"
+rustfm-scrobble-proxy = "2.0"
 listenbrainz = "0.7"
 anyhow = "1.0"
 thiserror = "1.0"
