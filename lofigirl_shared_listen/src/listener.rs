@@ -56,7 +56,7 @@ impl Listener {
 
     fn send_action(&self, action: Action, track: &Track) -> Result<()> {
         if let Some(l) = &self.lastfm_listener {
-            let scrobble = Scrobble::new(&track.artist, &track.song, "");
+            let scrobble = Scrobble::new(&track.artist, &track.song, None);
             action.act_for_lastfm(&l, &scrobble)?;
         }
         if let Some(l) = &self.listenbrainz_listener {
