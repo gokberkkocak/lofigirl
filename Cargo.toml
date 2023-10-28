@@ -7,6 +7,7 @@ members = [
     "lofigirl_sys", 
     "lofigirl_web_client",
 ]
+resolver = "2"
 
 [profile.release]
 lto = true
