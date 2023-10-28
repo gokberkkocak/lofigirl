@@ -33,39 +33,43 @@ impl YoutubeLinkCapturer {
 #[cfg(not(feature = "alt_yt_backend"))]
 pub struct YoutubeLinkCapturer {
     temp_dir: TempDir,
-    persistent_temp_path: std::path::PathBuf,
+    last_persistent_fetch_path: std::path::PathBuf,
+    last_persistent_fetch_path_str: String,
 }
 #[cfg(not(feature = "alt_yt_backend"))]
 impl YoutubeLinkCapturer {
     pub fn new() -> Result<Self> {
         let temp_dir = tempfile::tempdir()?;
-        let persistent_temp_path = temp_dir.path().join("current_chunk");
+        let last_persistent_fetch_path = temp_dir.path().join("current_chunk");
+        let last_persistent_fetch_path_str = last_persistent_fetch_path
+            .as_os_str()
+            .to_str()
+            .ok_or(CaptureError::YoutubeLinkCaptureError)?
+            .to_owned();
         Ok(YoutubeLinkCapturer {
             temp_dir,
-            persistent_temp_path,
+            last_persistent_fetch_path,
+            last_persistent_fetch_path_str,
         })
     }
     pub async fn get_raw_link(&self, url: &Url) -> Result<String> {
         let video_options = rusty_ytdl::VideoOptions {
             quality: VideoQuality::HighestVideo,
             ..Default::default()
-          };
+        };
         let video = rusty_ytdl::Video::new_with_options(url.as_str(), video_options)?;
         let stream = video.stream().await?;
         // get one chunk and save to temp
         let mut raw_file = NamedTempFile::new_in(&self.temp_dir)?;
-        if let Some(chunk) = stream.chunk().await.unwrap() {
+        if let Some(chunk) = stream.chunk().await? {
             raw_file.write_all(&chunk)?;
         }
-        raw_file.persist(&self.persistent_temp_path)?;
-        let raw_file_name = self
-            .persistent_temp_path
-            .as_os_str()
-            .to_str()
-            .ok_or(CaptureError::YoutubeLinkCaptureError)?
-            .to_owned();
-        info!("Raw link is captured using ytextract: {}", &raw_file_name);
-        Ok(raw_file_name)
+        raw_file.persist(&self.last_persistent_fetch_path)?;
+        info!(
+            "Raw stream is captured using rusty_ytdl to file: {}",
+            &self.last_persistent_fetch_path_str
+        );
+        Ok(self.last_persistent_fetch_path_str.to_owned())
     }
 }
 
