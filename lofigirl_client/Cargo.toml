@@ -10,16 +10,16 @@ lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 lofigirl_shared_listen = { path = "../lofigirl_shared_listen"}
 reqwest = { version = "0.11", features = ["json"] }
 serde_json = "1.0"
-toml = "0.7"
+toml = "0.8"
 serde = { version = "1.0", features = ["derive"]}
-tokio = { version = "1.28", features = ["rt", "fs", "time"] }
+tokio = { version = "1.33", features = ["rt", "fs", "time"] }
 clap = { version = "4.4", features = ["derive"] }
 anyhow = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
-url = { version = "2.3", optional = true}
-notify-rust = { version = "4.8", optional = true }
+url = { version = "2.4", optional = true}
+notify-rust = { version = "4.9", optional = true }
 
 
 [features]
