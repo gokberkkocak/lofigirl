@@ -18,7 +18,7 @@ anyhow = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
-url = { version = "2.4", optional = true}
+url = { version = "2.5", optional = true}
 notify-rust = { version = "4.9", optional = true }
 
 

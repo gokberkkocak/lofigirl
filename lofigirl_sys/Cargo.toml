@@ -14,7 +14,7 @@ rusty_ytdl = "0.6"
 leptess = "0.14"
 anyhow = "1.0"
 thiserror = "1.0"
-url = "2.4"
+url = "2.5"
 tracing = "0.1"
 tempfile = "3.8"
 
