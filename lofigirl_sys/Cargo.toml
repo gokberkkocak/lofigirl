@@ -8,15 +8,15 @@ edition = "2021"
 
 [dependencies]
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
-opencv = { version = "0.86", features = ["clang-runtime"] }
+opencv = { version = "0.88", features = ["clang-runtime"] }
 rustube = { version = "0.6", optional = true }
 rusty_ytdl = "0.6"
 leptess = "0.14"
 anyhow = "1.0"
 thiserror = "1.0"
-url = "2.4"
+url = "2.5"
 tracing = "0.1"
-tempfile = "3.8"
+tempfile = "3.9"
 
 [features]
 alt_yt_backend = ["rustube"]
