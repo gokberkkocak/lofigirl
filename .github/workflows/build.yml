@@ -1,14 +1,6 @@
 name: Build on Pull Request
 
 on:  
-  push:
-    branches: [ main ]
-    paths:
-      - '**.rs'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - '**.dart'
-      - 'Dockerfile'
   pull_request:
     branches: [ main ]
     paths:
@@ -35,6 +27,15 @@ jobs:
         target: builder
         tags:
           lofigirl:latest
+    - name: Extract binaries from the docker
+      run: |
+        mkdir -p ${{ github.workspace }}/bin
+        docker cp $(docker create lofigirl:latest):/app/bin/. ${{ github.workspace }}/bin
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: lofigirl_server
+        path: ${{ github.workspace }}/bin/lofigirl_server
   build_client:
     name: Client build
     runs-on: ubuntu-latest
@@ -42,7 +43,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Build
-      run: cargo build -p lofigirl_client --features notify
+      run: cargo build --release -p lofigirl_client --features notify
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: lofigirl_client
+        path: target/release/lofigirl_client
   build_wasm_frontend:
     name: Build single platform wasm
     runs-on: ubuntu-latest

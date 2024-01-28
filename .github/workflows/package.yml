@@ -2,8 +2,12 @@ name: Build and Push Docker Image
 
 on:
   push:
-    tags:
-      - "v*" # matches v1.0.1, v1.2, v2, etc
+    branches: [ main ]
+    paths:
+      - '**.rs'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'Dockerfile'
 
 jobs:
   docker:
