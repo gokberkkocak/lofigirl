@@ -34,19 +34,19 @@ jobs:
     - name: Archive production artifact - server
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_server_amd64
+        name: lofigirl_server_linux_amd64
         path: ${{ github.workspace }}/bin/lofigirl_server
         overwrite: true
     - name: Archive production artifact - client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_amd64
+        name: lofigirl_client_linux_amd64
         path: ${{ github.workspace }}/bin/lofigirl_client
         overwrite: true
     - name: Archive production artifact - standalone client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_standalone_amd64
+        name: lofigirl_client_standalone_linux_amd64
         path: ${{ github.workspace }}/bin/lofigirl_client_standalone
         overwrite: true
   build_arm64:
@@ -70,19 +70,19 @@ jobs:
     - name: Archive production artifact - server
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_server_arm64
+        name: lofigirl_server_linux_arm64
         path: ${{ github.workspace }}/bin/lofigirl_server
         overwrite: true
     - name: Archive production artifact - client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_arm64
+        name: lofigirl_client_linux_arm64
         path: ${{ github.workspace }}/bin/lofigirl_client
         overwrite: true
     - name: Archive production artifact - standalone client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_standalone_arm64
+        name: lofigirl_client_standalone_linux_arm64
         path: ${{ github.workspace }}/bin/lofigirl_client_standalone
         overwrite: true
   build_armhf:
@@ -106,18 +106,18 @@ jobs:
     - name: Archive production artifact - server
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_server_armhf
+        name: lofigirl_server_linux_armhf
         path: ${{ github.workspace }}/bin/lofigirl_server
         overwrite: true
     - name: Archive production artifact - client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_armhf
+        name: lofigirl_client_linux_armhf
         path: ${{ github.workspace }}/bin/lofigirl_client
         overwrite: true
     - name: Archive production artifact - standalone client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_standalone_armhf
+        name: lofigirl_client_standalone_linux_armhf
         path: ${{ github.workspace }}/bin/lofigirl_client_standalone
         overwrite: true
