@@ -8,6 +8,7 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - '**.dart'
+      - 'Dockerfile'
   pull_request:
     branches: [ main ]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - '**.dart'
+      - 'Dockerfile'
 
 env:
   CARGO_TERM_COLOR: always
