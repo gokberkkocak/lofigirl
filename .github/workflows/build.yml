@@ -36,6 +36,7 @@ jobs:
       with:
         name: lofigirl_server
         path: ${{ github.workspace }}/bin/lofigirl_server
+        overwrite: true
   build_client:
     name: Client build
     runs-on: ubuntu-latest
@@ -49,6 +50,7 @@ jobs:
       with:
         name: lofigirl_client
         path: target/release/lofigirl_client
+        overwrite: true
   build_wasm_frontend:
     name: Build single platform wasm
     runs-on: ubuntu-latest
