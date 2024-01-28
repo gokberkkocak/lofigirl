@@ -1,9 +1,9 @@
 use lofigirl_shared_common::config::LastFMClientSessionConfig;
 use lofigirl_shared_common::config::ListenBrainzConfig;
 
+use gloo_storage::errors::StorageError;
 use gloo_storage::LocalStorage;
 use gloo_storage::Storage;
-use gloo_storage::errors::StorageError;
 
 const LASTFM_SESSION_KEY: &str = "lastfm_session_key";
 const SESSION_TOKEN: &str = "session_token";

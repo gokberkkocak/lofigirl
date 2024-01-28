@@ -29,7 +29,7 @@ impl AppState {
     pub async fn new(
         api: Option<LastFMApiConfig>,
         token_db_file: &str,
-        nb_links: usize
+        nb_links: usize,
     ) -> anyhow::Result<AppState> {
         Ok(AppState {
             lastfm_api: Mutex::new(api),
@@ -120,7 +120,10 @@ async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) -> Resu
     let info = info.into_inner();
     let token_db = data.token_db.lock();
     let token = token_db
-        .get_or_generate_token(info.lastfm_session_key.as_ref(), info.listenbrainz_token.as_ref())
+        .get_or_generate_token(
+            info.lastfm_session_key.as_ref(),
+            info.listenbrainz_token.as_ref(),
+        )
         .await
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
     Ok(HttpResponse::Ok().json(TokenResponse { token }))
