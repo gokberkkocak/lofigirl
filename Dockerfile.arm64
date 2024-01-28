@@ -1,0 +1,42 @@
+FROM debian:bookworm AS builder
+
+WORKDIR /app
+
+COPY ./ ./
+
+RUN dpkg --add-architecture arm64
+RUN apt update
+RUN apt upgrade -y
+RUN apt install -y build-essential curl libssl-dev clang libclang-dev pkg-config sqlite3 \
+                   crossbuild-essential-arm64 libopencv-dev:arm64 libssl-dev:arm64 libleptonica-dev:arm64 libtesseract-dev:arm64
+ENV PKG_CONFIG_PATH /usr/lib/aarch64-linux-gnu/pkgconfig/
+ENV PKG_CONFIG_ALLOW_CROSS 1
+
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup target add aarch64-unknown-linux-gnu
+RUN mkdir /.cargo && \
+    echo '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"' >> /.cargo/config
+
+ENV DATABASE_URL=sqlite:token.db
+RUN sqlite3 token.db < migrations/20210525000135_table.sql 
+
+RUN mkdir -p /app/bin
+RUN cargo build --release --target aarch64-unknown-linux-gnu -p lofigirl_client --features standalone
+RUN mv ./target/aarch64-unknown-linux-gnu/release/lofigirl_client /app/bin/lofigirl_client_standalone
+RUN cargo build --release --target aarch64-unknown-linux-gnu -p lofigirl_client -p lofigirl_server
+RUN mv ./target/aarch64-unknown-linux-gnu/release/lofigirl_client /app/bin/
+RUN mv ./target/aarch64-unknown-linux-gnu/release/lofigirl_server /app/bin/
+
+FROM debian:bookworm as runner
+
+COPY --from=builder /app/bin/lofigirl_client /usr/bin/
+COPY --from=builder /app/bin/lofigirl_server /usr/bin/
+COPY --from=builder /app/bin/lofigirl_client_standalone /usr/bin/
+
+RUN dpkg --add-architecture arm64
+RUN apt update
+RUN apt upgrade -y
+RUN apt install -y libopencv-dev:arm64 libleptonica-dev:arm64 libtesseract-dev:arm64 tesseract-ocr-eng
+
+ENTRYPOINT [ "lofigirl_server" ]
