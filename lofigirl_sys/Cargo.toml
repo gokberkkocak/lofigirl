@@ -16,7 +16,7 @@ anyhow = "1.0"
 thiserror = "1.0"
 url = "2.5"
 tracing = "0.1"
-tempfile = "3.9"
+tempfile = "3.10"
 
 [features]
 alt_yt_backend = ["rustube"]
