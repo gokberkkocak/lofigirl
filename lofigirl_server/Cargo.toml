@@ -11,7 +11,7 @@ lofigirl_sys = { path = "../lofigirl_sys"}
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 lofigirl_shared_listen = { path = "../lofigirl_shared_listen"}
 serde = { version = "1.0", features = ["derive"] }
-actix-web = "4.4"
+actix-web = "4.5"
 actix-cors = "0.7"
 actix-rt = "2.9"
 sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-native-tls"] }
