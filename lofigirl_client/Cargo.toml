@@ -8,7 +8,7 @@ edition = "2021"
 lofigirl_sys = { path = "../lofigirl_sys", optional = true }
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 lofigirl_shared_listen = { path = "../lofigirl_shared_listen"}
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
 serde_json = "1.0"
 toml = "0.8"
 serde = { version = "1.0", features = ["derive"]}
