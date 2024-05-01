@@ -2333,19 +2333,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jobslot"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69d354a626ad589ae49ba37a6c8c782e615813516f86eba9da15a390b1363b01"
-dependencies = [
- "cfg-if",
- "getrandom 0.2.12",
- "libc",
- "scopeguard",
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "js-sys"
 version = "0.3.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2982,13 +2969,13 @@ dependencies = [
 
 [[package]]
 name = "opencv"
-version = "0.88.8"
+version = "0.91.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96a686d8bc74fac172642bb5cb3fd2679ccc1b85d4f7ccedd273757174f1dbcd"
+checksum = "f338f86d1dd03ee766ce57522edbb7b691dc5bff437f224655ed1ff5f790a987"
 dependencies = [
  "cc",
  "dunce",
- "jobslot",
+ "jobserver",
  "libc",
  "num-traits",
  "once_cell",
@@ -3001,9 +2988,9 @@ dependencies = [
 
 [[package]]
 name = "opencv-binding-generator"
-version = "0.84.0"
+version = "0.88.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e842c276fd00b26100de550e2b47f6ded4f06213c62f0575cb7242aecde2efd"
+checksum = "2d32d95d8c915a19baa9dce2488d0057a7824a0456e315d7d7e20798716c8df8"
 dependencies = [
  "clang",
  "clang-sys",
