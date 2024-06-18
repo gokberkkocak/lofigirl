@@ -21,6 +21,7 @@ use {
     lofigirl_shared_common::TRACK_END_POINT,
     lofigirl_shared_common::{CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT},
     reqwest::Client,
+    std::marker::PhantomData,
 };
 
 #[cfg(feature = "standalone")]
@@ -32,22 +33,23 @@ use {
 use {notify_rust::Notification, notify_rust::Timeout};
 
 #[cfg(not(feature = "standalone"))]
-pub struct Worker {
+pub struct Worker<'a> {
     client: Client,
     track_request_url: String,
     track_send_url: String,
     token: String,
     prev_track_with_count: Option<TrackWithCount>,
+    _lifetime_marker: PhantomData<&'a ()>
 }
 
 #[cfg(feature = "standalone")]
-pub struct Worker {
+pub struct Worker<'a> {
     listener: Listener,
-    image_proc: ImageProcessor,
+    image_proc: ImageProcessor<'a>,
     prev_track_with_count: Option<TrackWithCount>,
 }
 
-impl Worker {
+impl<'a> Worker<'a> {
     pub async fn work(&mut self) -> bool {
         match self.fragile_work().await {
             Ok(_) => true,
@@ -119,8 +121,8 @@ impl Worker {
 }
 
 #[cfg(feature = "standalone")]
-impl Worker {
-    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+impl<'a, 'b> Worker<'a> {
+    pub async fn new(config: &'b mut Config, second: bool) -> Result<(Worker<'a>, bool)> {
         let mut config_changed = false;
         let video_url = if second {
             Url::parse(
@@ -177,8 +179,8 @@ impl Worker {
 }
 
 #[cfg(not(feature = "standalone"))]
-impl Worker {
-    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+impl<'a, 'b> Worker<'a> {
+    pub async fn new(config: &'b mut Config, second: bool) -> Result<(Worker<'a>, bool)> {
         let mut config_changed = false;
         let client = Client::new();
         let base_url = config
@@ -260,6 +262,7 @@ impl Worker {
                 track_send_url,
                 token,
                 prev_track_with_count: None,
+                _lifetime_marker: PhantomData,
             },
             config_changed,
         ))
