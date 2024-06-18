@@ -7,13 +7,13 @@ use thiserror::Error;
 use tracing::{info, warn};
 use url::Url;
 
-pub struct ServerWorker {
-    image_procs: Vec<ImageProcessor>,
+pub struct ServerWorker<'a> {
+    image_procs: Vec<ImageProcessor<'a>>,
     pub state: web::Data<AppState>,
 }
 
-impl ServerWorker {
-    pub async fn new(config: &ServerConfig) -> Result<ServerWorker> {
+impl<'a, 'b> ServerWorker<'a> {
+    pub async fn new(config: &'b ServerConfig) -> Result<ServerWorker<'a>> {
         if config.video.links.is_empty() {
             bail!(WorkerError::NoVideoLink);
         }

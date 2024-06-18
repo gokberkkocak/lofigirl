@@ -1,5 +1,6 @@
 use anyhow::Result;
 use leptess::LepTess;
+use opencv::boxed_ref::BoxedRef;
 use opencv::core::Vector;
 use opencv::core::{Mat, MatTraitConst, Rect_};
 use opencv::videoio::VideoCapture;
@@ -14,16 +15,16 @@ use lofigirl_shared_common::track::Track;
 
 const DPI: i32 = 70;
 
-pub struct ImageProcessor {
+pub struct ImageProcessor<'a> {
     link_capturer: YoutubeLinkCapturer,
     video_url: Url,
     ocr: LepTess,
-    low_bounds: Mat,
-    high_bounds: Mat,
+    low_bounds: BoxedRef<'a, Mat>,
+    high_bounds: BoxedRef<'a, Mat>,
 }
 
-impl ImageProcessor {
-    pub fn new(video_url: Url) -> Result<ImageProcessor> {
+impl<'a> ImageProcessor<'a> {
+    pub fn new(video_url: Url) -> Result<ImageProcessor<'a>> {
         let low_bounds = Mat::from_slice(&[200, 200, 200])?;
         let high_bounds = Mat::from_slice(&[255, 255, 255])?;
         let ocr = LepTess::new(None, "eng")?;
