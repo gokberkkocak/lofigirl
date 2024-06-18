@@ -11,11 +11,11 @@ lofigirl_sys = { path = "../lofigirl_sys"}
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 lofigirl_shared_listen = { path = "../lofigirl_shared_listen"}
 serde = { version = "1.0", features = ["derive"] }
-actix-web = "4.5"
+actix-web = "4.7"
 actix-cors = "0.7"
-actix-rt = "2.9"
+actix-rt = "2.10"
 sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-native-tls"] }
-uuid = { version = "1.7", features = ["v4"] }
+uuid = { version = "1.8", features = ["v4"] }
 thiserror = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 toml = "0.8"
