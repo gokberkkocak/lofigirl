@@ -34,7 +34,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Build docker image for one stage
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         target: builder
