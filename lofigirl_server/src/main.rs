@@ -31,7 +31,10 @@ async fn main() -> std::io::Result<()> {
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     let state = worker.state.clone();
     actix_rt::spawn(async move {
-        worker.loop_work().await;
+        worker
+            .work()
+            .await
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
     });
     LofiServer::start(state, config.server_settings.port).await
 }

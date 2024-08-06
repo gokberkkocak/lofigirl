@@ -20,8 +20,6 @@ use thiserror::Error;
 pub struct AppState {
     pub lastfm_api: Mutex<Option<LastFMApiConfig>>,
     pub tracks: Mutex<Vec<Option<Track>>>,
-    // pub main_track: Mutex<Option<Track>>,
-    // pub second_track: Mutex<Option<Track>>,
     pub token_db: Mutex<TokenDB>,
 }
 
@@ -34,16 +32,13 @@ impl AppState {
         Ok(AppState {
             lastfm_api: Mutex::new(api),
             tracks: Mutex::new(vec![None; nb_links]),
-            // main_track: Mutex::new(None),
-            // second_track: Mutex::new(None),
             token_db: Mutex::new(TokenDB::new(token_db_file).await?),
         })
     }
 }
 async fn get_track_with_index(data: web::Data<AppState>, idx: usize) -> Result<HttpResponse> {
     let lock = data.tracks.lock();
-    let tracks = lock.clone();
-    if let Some(track) = tracks.get(idx) {
+    if let Some(track) = lock.get(idx) {
         Ok(HttpResponse::Ok().json(track))
     } else {
         Ok(HttpResponse::NotFound().json(ServerResponseError::TrackNotAvailable))

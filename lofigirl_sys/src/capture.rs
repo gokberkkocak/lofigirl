@@ -1,4 +1,5 @@
 use anyhow::Result;
+use rand::Rng;
 use rusty_ytdl::VideoQuality;
 use std::io::Write;
 use tempfile::{NamedTempFile, TempDir};
@@ -39,8 +40,12 @@ pub struct YoutubeLinkCapturer {
 #[cfg(not(feature = "alt_yt_backend"))]
 impl YoutubeLinkCapturer {
     pub fn new() -> Result<Self> {
+        let mut rng = rand::thread_rng();
+        let random_suffix = rng.gen::<u64>();
         let temp_dir = tempfile::tempdir()?;
-        let last_persistent_fetch_path = temp_dir.path().join("current_chunk");
+        let last_persistent_fetch_path = temp_dir
+            .path()
+            .join(format!("current_chunk_{}", random_suffix));
         let last_persistent_fetch_path_str = last_persistent_fetch_path
             .as_os_str()
             .to_str()

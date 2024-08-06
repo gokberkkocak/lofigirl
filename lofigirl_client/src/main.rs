@@ -4,7 +4,6 @@ mod worker;
 use anyhow::Result;
 use clap::Parser;
 use config::Config;
-use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 use std::path::PathBuf;
 use worker::Worker;
 
@@ -42,11 +41,6 @@ async fn body() -> Result<()> {
         // modify config file so that we can store token and/or session_key
         config.to_toml(&opt.config).await?;
     }
-    loop {
-        let wait_duration = match worker.work().await {
-            true => &REGULAR_INTERVAL,
-            false => &FAST_TRY_INTERVAL,
-        };
-        std::thread::sleep(**wait_duration);
-    }
+    worker.work().await;
+    Ok(())
 }
