@@ -13,14 +13,14 @@ use lofigirl_shared_common::{
     HEALTH_END_POINT, LASTFM_SESSION_END_POINT, SEND_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
 };
 use lofigirl_shared_listen::listener::Listener;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use serde::Serialize;
 use thiserror::Error;
 
 pub struct AppState {
-    pub lastfm_api: Mutex<Option<LastFMApiConfig>>,
-    pub tracks: Mutex<Vec<Option<Track>>>,
-    pub token_db: Mutex<TokenDB>,
+    pub lastfm_api: Option<LastFMApiConfig>,
+    pub tracks: RwLock<Vec<Option<Track>>>,
+    pub token_db: TokenDB,
 }
 
 impl AppState {
@@ -30,14 +30,14 @@ impl AppState {
         nb_links: usize,
     ) -> anyhow::Result<AppState> {
         Ok(AppState {
-            lastfm_api: Mutex::new(api),
-            tracks: Mutex::new(vec![None; nb_links]),
-            token_db: Mutex::new(TokenDB::new(token_db_file).await?),
+            lastfm_api: api,
+            tracks: RwLock::new(vec![None; nb_links]),
+            token_db: TokenDB::new(token_db_file).await?,
         })
     }
 }
 async fn get_track_with_index(data: web::Data<AppState>, idx: usize) -> Result<HttpResponse> {
-    let lock = data.tracks.lock();
+    let lock = data.tracks.read();
     if let Some(track) = lock.get(idx) {
         Ok(HttpResponse::Ok().json(track))
     } else {
@@ -56,14 +56,12 @@ async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
 async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Result<HttpResponse> {
     let info = info.into_inner();
     let mut listener = Listener::new();
-    let token_db = data.token_db.lock();
-    let api = data.lastfm_api.lock();
-    let (lfm, lb) = token_db
+    let (lfm, lb) = data.token_db
         .get_info_from_token(&info.token)
         .await
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
     if let Some(lastfm_client_session) = lfm {
-        if let Some(api) = &*api {
+        if let Some(api) = &data.lastfm_api {
             listener
                 .set_lastfm_listener(api, &LastFMClientConfig::SessionAuth(lastfm_client_session))
                 .map_err(|e| {
@@ -98,8 +96,7 @@ async fn session(
     info: web::Json<SessionRequest>,
 ) -> Result<HttpResponse> {
     let info = info.into_inner();
-    let api = data.lastfm_api.lock();
-    if let Some(api) = &*api {
+    if let Some(api) = &data.lastfm_api {
         let session_config = Listener::convert_client_to_session(
             api,
             &LastFMClientConfig::PasswordAuth(info.password_config),
@@ -113,8 +110,7 @@ async fn session(
 
 async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) -> Result<HttpResponse> {
     let info = info.into_inner();
-    let token_db = data.token_db.lock();
-    let token = token_db
+    let token = data.token_db
         .get_or_generate_token(
             info.lastfm_session_key.as_ref(),
             info.listenbrainz_token.as_ref(),
