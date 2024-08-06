@@ -29,7 +29,7 @@ pub fn remove_lastfm_config() {
 }
 
 pub fn set_session_token(token: &str) {
-    LocalStorage::set(SESSION_TOKEN, &token).unwrap();
+    LocalStorage::set(SESSION_TOKEN, token).unwrap();
 }
 
 pub fn get_session_token() -> Option<String> {

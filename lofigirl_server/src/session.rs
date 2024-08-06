@@ -21,16 +21,16 @@ impl TokenDB {
         listenbrainz_token: Option<&String>,
     ) -> Result<String> {
         (lastfm_session_key.is_some() || listenbrainz_token.is_some())
-            .then(|| ())
+            .then_some(())
             .ok_or(ConfigError::EmptyListeners)?;
         let mut conn = self.pool.acquire().await?;
         let lfm_id = if let Some(lastfm) = lastfm_session_key {
-            Some(self.get_lastfm_id(&lastfm).await?)
+            Some(self.get_lastfm_id(lastfm).await?)
         } else {
             None
         };
         let lb_id = if let Some(listenbrainz) = listenbrainz_token {
-            Some(self.get_listenbrainz_id(&listenbrainz).await?)
+            Some(self.get_listenbrainz_id(listenbrainz).await?)
         } else {
             None
         };

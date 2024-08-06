@@ -144,14 +144,14 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             if model.is_scrobbling {
                 let server = model.server_url.clone().unwrap();
                 let token = model.session_token.clone();
-                let l = match &model.lastfm_config {
-                    Some(l) => Some(l.session_key.to_owned()),
-                    None => None,
-                };
-                let ls = match &model.listenbrainz_config {
-                    Some(l) => Some(l.token.to_owned()),
-                    None => None,
-                };
+                let l = model
+                    .lastfm_config
+                    .as_ref()
+                    .map(|l| l.session_key.to_owned());
+                let ls = model
+                    .listenbrainz_config
+                    .as_ref()
+                    .map(|l| l.token.to_owned());
                 orders.perform_cmd(async move {
                     match token {
                         Some(_) => {

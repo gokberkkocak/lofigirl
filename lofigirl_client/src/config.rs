@@ -26,19 +26,19 @@ impl Config {
         let file_contents = String::from_utf8(tokio::fs::read(file_name).await?)?;
         let config: Config = toml::from_str(&file_contents)?;
         (config.lastfm.is_some() || config.listenbrainz.is_some())
-            .then(|| ())
+            .then_some(())
             .ok_or(ConfigError::EmptyListeners)?;
         #[cfg(feature = "standalone")]
         config
             .video
             .is_some()
-            .then(|| ())
+            .then_some(())
             .ok_or(ConfigError::EmptyVideoConfig)?;
         #[cfg(not(feature = "standalone"))]
         config
             .server
             .is_some()
-            .then(|| ())
+            .then_some(())
             .ok_or(ConfigError::EmptyServerConfig)?;
         info!("Loaded config from {}", file_name.display());
         Ok(config)

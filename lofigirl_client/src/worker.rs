@@ -2,6 +2,8 @@ use crate::config::Config;
 use anyhow::Result;
 use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::{config::ConfigError, track::Track};
+use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
+
 use tracing::info;
 
 #[cfg(not(feature = "standalone"))]
@@ -21,7 +23,6 @@ use {
     lofigirl_shared_common::TRACK_END_POINT,
     lofigirl_shared_common::{CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT},
     reqwest::Client,
-    std::marker::PhantomData,
 };
 
 #[cfg(feature = "standalone")]
@@ -33,34 +34,35 @@ use {
 use {notify_rust::Notification, notify_rust::Timeout};
 
 #[cfg(not(feature = "standalone"))]
-pub struct Worker<'a> {
+pub struct Worker {
     client: Client,
     track_request_url: String,
     track_send_url: String,
     token: String,
     prev_track_with_count: Option<TrackWithCount>,
-    _lifetime_marker: PhantomData<&'a ()>
 }
 
 #[cfg(feature = "standalone")]
-pub struct Worker<'a> {
+pub struct Worker {
     listener: Listener,
-    image_proc: ImageProcessor<'a>,
+    image_proc: ImageProcessor,
     prev_track_with_count: Option<TrackWithCount>,
 }
 
-impl<'a> Worker<'a> {
-    pub async fn work(&mut self) -> bool {
-        match self.fragile_work().await {
-            Ok(_) => true,
-            Err(e) => {
-                info!("Problem with: {}", e.to_string());
-                false
+impl Worker {
+    pub async fn work(&mut self) {
+        loop {
+            match self.periodic_task().await {
+                Ok(_) => std::thread::sleep(*REGULAR_INTERVAL),
+                Err(e) => {
+                    info!("Problem with: {}", e.to_string());
+                    std::thread::sleep(*FAST_TRY_INTERVAL);
+                }
             }
         }
     }
 
-    async fn fragile_work(&mut self) -> Result<()> {
+    async fn periodic_task(&mut self) -> Result<()> {
         #[cfg(not(feature = "standalone"))]
         let next_track = self.get_track().await?;
         #[cfg(feature = "standalone")]
@@ -121,8 +123,8 @@ impl<'a> Worker<'a> {
 }
 
 #[cfg(feature = "standalone")]
-impl<'a, 'b> Worker<'a> {
-    pub async fn new(config: &'b mut Config, second: bool) -> Result<(Worker<'a>, bool)> {
+impl Worker {
+    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
         let mut config_changed = false;
         let video_url = if second {
             Url::parse(
@@ -179,8 +181,8 @@ impl<'a, 'b> Worker<'a> {
 }
 
 #[cfg(not(feature = "standalone"))]
-impl<'a, 'b> Worker<'a> {
-    pub async fn new(config: &'b mut Config, second: bool) -> Result<(Worker<'a>, bool)> {
+impl Worker {
+    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
         let mut config_changed = false;
         let client = Client::new();
         let base_url = config
@@ -196,12 +198,11 @@ impl<'a, 'b> Worker<'a> {
                 let lastfm_session_config = if let Some(lastfm) = &config.lastfm {
                     match &lastfm {
                         lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => {
-                            config_changed = config_changed || true;
                             Some(
                                 Worker::get_session(
                                     &client,
                                     p,
-                                    &config
+                                    config
                                         .server
                                         .as_ref()
                                         .ok_or(ConfigError::EmptyServerConfig)?
@@ -226,20 +227,14 @@ impl<'a, 'b> Worker<'a> {
                 } else {
                     None
                 };
-                let listenbrainz_token = if let Some(l) = &config.listenbrainz {
-                    Some(l.token.to_owned())
-                } else {
-                    None
-                };
+                let listenbrainz_token = config.listenbrainz.as_ref().map(|l| l.token.to_owned());
                 let token =
                     Worker::get_token(&client, lastfm_session_key, listenbrainz_token, base_url)
                         .await?;
-                {
-                    config_changed = config_changed || true;
-                    config.session = Some(TokenConfig {
-                        token: token.clone(),
-                    });
-                }
+                config_changed = true;
+                config.session = Some(TokenConfig {
+                    token: token.clone(),
+                });
                 token
             }
         };
@@ -262,7 +257,6 @@ impl<'a, 'b> Worker<'a> {
                 track_send_url,
                 token,
                 prev_track_with_count: None,
-                _lifetime_marker: PhantomData,
             },
             config_changed,
         ))
