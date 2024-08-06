@@ -70,7 +70,7 @@ impl ServerWorker {
                     let next_track = image_proc.next_track().await;
                     match next_track {
                         Ok(track) => {
-                            let mut lock = state_clone.tracks.lock();
+                            let mut lock = state_clone.tracks.write();
                             lock[idx] = Some(track);
                             std::thread::sleep(*REGULAR_INTERVAL);
                         }
