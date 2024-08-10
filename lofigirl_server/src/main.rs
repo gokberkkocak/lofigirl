@@ -7,7 +7,7 @@ use crate::config::ServerConfig;
 use clap::Parser;
 use server::LofiServer;
 use std::path::PathBuf;
-use worker::ServerWorker;
+use worker::InitServerWorker;
 
 const APP_NAME: &str = "lofigirl_server";
 
@@ -26,7 +26,7 @@ async fn main() -> std::io::Result<()> {
     let opt = Opt::parse();
     let config = ServerConfig::from_toml(&opt.config)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-    let mut worker = ServerWorker::new(&config)
+    let mut worker = InitServerWorker::new(&config)
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     let state = worker.state.clone();

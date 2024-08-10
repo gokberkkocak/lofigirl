@@ -1,35 +1,28 @@
 use crate::config::Config;
 use anyhow::Result;
+
 use lofigirl_shared_common::config::LastFMClientConfig;
-use lofigirl_shared_common::{config::ConfigError, track::Track};
+use lofigirl_shared_common::track::Track;
 use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
 
 use tracing::info;
+use url::Url;
 
 #[cfg(not(feature = "standalone"))]
 use {
-    crate::config::TokenConfig,
-    lofigirl_shared_common::api::Action,
-    lofigirl_shared_common::api::ScrobbleRequest,
-    lofigirl_shared_common::api::SessionRequest,
-    lofigirl_shared_common::api::SessionResponse,
-    lofigirl_shared_common::api::TokenRequest,
-    lofigirl_shared_common::api::TokenResponse,
+    crate::config::TokenConfig, anyhow::bail, lofigirl_shared_common::api::Action,
+    lofigirl_shared_common::api::ScrobbleRequest, lofigirl_shared_common::api::SessionRequest,
+    lofigirl_shared_common::api::SessionResponse, lofigirl_shared_common::api::TokenRequest,
+    lofigirl_shared_common::api::TokenResponse, lofigirl_shared_common::config::ConfigError,
     lofigirl_shared_common::config::LastFMClientPasswordConfig,
     lofigirl_shared_common::config::LastFMClientSessionConfig,
-    lofigirl_shared_common::LASTFM_SESSION_END_POINT,
-    lofigirl_shared_common::SEND_END_POINT,
-    lofigirl_shared_common::TOKEN_END_POINT,
-    lofigirl_shared_common::TRACK_END_POINT,
-    lofigirl_shared_common::{CHILL_TRACK_API_END_POINT, SLEEP_TRACK_API_END_POINT},
+    lofigirl_shared_common::LASTFM_SESSION_END_POINT, lofigirl_shared_common::SEND_END_POINT,
+    lofigirl_shared_common::TOKEN_END_POINT, lofigirl_shared_common::TRACK_END_POINT,
     reqwest::Client,
 };
 
 #[cfg(feature = "standalone")]
-use {
-    lofigirl_shared_listen::listener::Listener, lofigirl_sys::image::ImageProcessor,
-    thiserror::Error, url::Url,
-};
+use {lofigirl_shared_listen::listener::Listener, lofigirl_sys::image::ImageProcessor};
 #[cfg(feature = "notify")]
 use {notify_rust::Notification, notify_rust::Timeout};
 
@@ -71,6 +64,7 @@ impl Worker {
         match prev {
             Some(mut t) if t.track == next_track && t.count == 3 => {
                 self.send_listen(&t.track).await?;
+                info!("Sent listen for: \"{} - {}\"", t.track.artist, t.track.song);
                 t.count += 1;
                 self.prev_track_with_count = Some(t);
             }
@@ -80,11 +74,26 @@ impl Worker {
             }
             Some(t) if t.count < 3 => {
                 self.send_listen(&t.track).await?;
+                #[cfg(not(feature = "standalone"))]
+                info!(
+                    "Sent listen info for: \"{} - {}\"",
+                    t.track.artist, t.track.song
+                );
                 self.send_now_playing(&next_track).await?;
+                #[cfg(not(feature = "standalone"))]
+                info!(
+                    "Sent now playing info for: \"{} - {}\"",
+                    next_track.artist, next_track.song
+                );
                 self.prev_track_with_count = Some(TrackWithCount::new(next_track));
             }
             _ => {
                 self.send_now_playing(&next_track).await?;
+                #[cfg(not(feature = "standalone"))]
+                info!(
+                    "Sent now playing info for: \"{} - {}\"",
+                    next_track.artist, next_track.song
+                );
                 self.prev_track_with_count = Some(TrackWithCount::new(next_track));
             }
         }
@@ -124,31 +133,9 @@ impl Worker {
 
 #[cfg(feature = "standalone")]
 impl Worker {
-    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+    pub async fn new(config: &mut Config, requested_url: Url) -> Result<(Worker, bool)> {
         let mut config_changed = false;
-        let video_url = if second {
-            Url::parse(
-                &config
-                    .video
-                    .as_ref()
-                    .ok_or(ConfigError::EmptyVideoConfig)?
-                    .links
-                    .get(1)
-                    .as_ref()
-                    .ok_or(WorkerError::MissingSecondVideoLink)?,
-            )?
-        } else {
-            Url::parse(
-                &config
-                    .video
-                    .as_ref()
-                    .ok_or(ConfigError::EmptyVideoConfig)?
-                    .links
-                    .get(0)
-                    .ok_or(ConfigError::EmptyVideoConfig)?,
-            )?
-        };
-        let image_proc = ImageProcessor::new(video_url)?;
+        let image_proc = ImageProcessor::new(requested_url)?;
         let lastfm_session_config = if let Some(client) = &config.lastfm {
             if let Some(api) = &config.lastfm_api {
                 config_changed = true;
@@ -159,11 +146,11 @@ impl Worker {
         } else {
             None
         };
-        let mut listener = Listener::new();
+        let mut listener = Listener::default();
         if let Some(session) = lastfm_session_config {
             config.lastfm = Some(LastFMClientConfig::SessionAuth(session.to_owned()));
             if let Some(api) = &config.lastfm_api {
-                listener.set_lastfm_listener(&api, &LastFMClientConfig::SessionAuth(session))?;
+                listener.set_lastfm_listener(api, &LastFMClientConfig::SessionAuth(session))?;
             }
         }
         if let Some(listenbrainz) = &config.listenbrainz {
@@ -182,7 +169,7 @@ impl Worker {
 
 #[cfg(not(feature = "standalone"))]
 impl Worker {
-    pub async fn new(config: &mut Config, second: bool) -> Result<(Worker, bool)> {
+    pub async fn new(config: &mut Config, requested_url: Url) -> Result<(Worker, bool)> {
         let mut config_changed = false;
         let client = Client::new();
         let base_url = config
@@ -239,17 +226,17 @@ impl Worker {
             }
         };
         let track_request_url = format!(
-            "{}{}{}",
+            "{}{}/{}",
             base_url,
             TRACK_END_POINT,
-            if second {
-                &SLEEP_TRACK_API_END_POINT
-            } else {
-                &CHILL_TRACK_API_END_POINT
-            }
+            percent_encoding::utf8_percent_encode(
+                requested_url.as_str(),
+                percent_encoding::NON_ALPHANUMERIC
+            )
         );
         let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
         info!("Client worker initialized");
+
         Ok((
             Worker {
                 client,
@@ -296,6 +283,10 @@ impl Worker {
 
     pub async fn get_track(&self) -> Result<Track> {
         let response = self.client.get(&self.track_request_url).send().await?;
+        // if response is 202 bail with different error
+        if response.status().as_u16() == 202 {
+            bail!("Track is not available yet. Will try again.");
+        }
         let content = response.text().await?;
         let track: Track = serde_json::from_str(&content)?;
         Ok(track)
@@ -328,11 +319,4 @@ impl TrackWithCount {
     fn new(track: Track) -> TrackWithCount {
         TrackWithCount { track, count: 1 }
     }
-}
-
-#[cfg(feature = "standalone")]
-#[derive(Error, Debug)]
-pub enum WorkerError {
-    #[error("Second video link cannot be found on config file.")]
-    MissingSecondVideoLink,
 }

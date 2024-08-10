@@ -23,7 +23,7 @@ static HIGH_BOUNDS: LazyLock<BoxedRef<Mat>> =
 
 pub struct ImageProcessor {
     link_capturer: YoutubeLinkCapturer,
-    video_url: Url,
+    pub video_url: Url,
     ocr: LepTess,
 }
 

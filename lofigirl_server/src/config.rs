@@ -7,7 +7,7 @@ use tracing::info;
 
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
-    pub video: VideoConfig,
+    pub video: Option<VideoConfig>,
     pub lastfm_api: Option<LastFMApiConfig>,
     pub server_settings: ServerSettingsConfig,
 }

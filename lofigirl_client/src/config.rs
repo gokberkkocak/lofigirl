@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Result;
 use lofigirl_shared_common::config::{
     ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig,
-    ServerSettingsConfig, VideoConfig,
+    ServerSettingsConfig,
 };
 use serde::{Deserialize, Serialize};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
@@ -15,7 +15,6 @@ pub struct Config {
     pub lastfm_api: Option<LastFMApiConfig>,
     pub listenbrainz: Option<ListenBrainzConfig>,
     pub session: Option<TokenConfig>,
-    pub video: Option<VideoConfig>,
     pub server: Option<ServerConfig>,
     #[allow(dead_code)]
     pub server_settings: Option<ServerSettingsConfig>,
@@ -28,12 +27,6 @@ impl Config {
         (config.lastfm.is_some() || config.listenbrainz.is_some())
             .then_some(())
             .ok_or(ConfigError::EmptyListeners)?;
-        #[cfg(feature = "standalone")]
-        config
-            .video
-            .is_some()
-            .then_some(())
-            .ok_or(ConfigError::EmptyVideoConfig)?;
         #[cfg(not(feature = "standalone"))]
         config
             .server

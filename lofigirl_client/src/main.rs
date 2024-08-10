@@ -20,9 +20,9 @@ struct Opt {
     /// Configuration toml file.
     #[clap(short, long, value_parser, default_value = "config.toml")]
     config: PathBuf,
-    /// Use second video link for listen info
+    /// LofiGirl Youtube stream URL.
     #[clap(short, long, value_parser)]
-    second: bool,
+    url: url::Url,
 }
 
 fn main() -> Result<()> {
@@ -36,7 +36,8 @@ async fn body() -> Result<()> {
     tracing_subscriber::fmt::init();
     let opt = Opt::parse();
     let mut config = Config::from_toml(&opt.config).await?;
-    let (mut worker, changed) = Worker::new(&mut config, opt.second).await?;
+    let requested_url = opt.url;
+    let (mut worker, changed) = Worker::new(&mut config, requested_url).await?;
     if changed {
         // modify config file so that we can store token and/or session_key
         config.to_toml(&opt.config).await?;

@@ -16,10 +16,6 @@ pub struct Listener {
 }
 
 impl Listener {
-    pub fn new() -> Listener {
-        Default::default()
-    }
-
     pub fn set_lastfm_listener(
         &mut self,
         lastfm_api: &LastFMApiConfig,
@@ -62,7 +58,10 @@ impl Listener {
         if let Some(l) = &self.listenbrainz_listener {
             action.act_for_listenbrainz(l, track)?;
         }
-        info!("Track \"{}\" has been marked {} for a user", track, action);
+        info!(
+            "Track \"{}\" has been marked {} for a listener",
+            track, action
+        );
         Ok(())
     }
 
