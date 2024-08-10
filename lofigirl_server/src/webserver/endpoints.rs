@@ -13,10 +13,12 @@ use lofigirl_shared_common::api::{
 };
 use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::track::Track;
+use lofigirl_shared_common::REGULAR_INTERVAL;
 use lofigirl_shared_listen::listener::Listener;
 use parking_lot::RwLock;
 use serde::Serialize;
 use thiserror::Error;
+use tracing::{info, warn};
 use url::Url;
 
 use super::AppState;
@@ -104,7 +106,7 @@ pub(crate) async fn dynamic_track(
     }
     // Create the new worker and send accepted response
     let state = data.clone();
-    // Rest API cannot use event based two-way communication, so we ignore rx
+    // Rest API cannot use event based two-way communication, so we ignore tx,rx but we create it anyway for future connections
     let (tx, _rx) = tokio::sync::watch::channel(Track::default());
     let mut worker = crate::worker::ServerWorker::new(youtube_url, state.clone())
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
@@ -122,75 +124,107 @@ pub(crate) async fn track_socket(
 ) -> actix_web::Result<impl Responder> {
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, body)?;
     actix_web::rt::spawn(async move {
-        let last_seen = Arc::new(RwLock::new(Instant::now()));
+        let last_ping = Arc::new(RwLock::new(Instant::now()));
         while let Some(Ok(msg)) = msg_stream.next().await {
             match msg {
                 Message::Text(msg) => match Url::parse(&msg) {
                     Ok(youtube_url) => {
+                        info!("Server received {youtube_url} from socket");
+                        // Update last requested state
                         let state = data.clone();
+                        let youtube_url_clone = youtube_url.clone();
+                        actix_rt::spawn(async move {
+                            // periodic update
+                            loop {
+                                {
+                                    let mut last_requested = state.last_requested.write();
+                                    last_requested
+                                        .insert(youtube_url_clone.clone(), Instant::now());
+                                }
+                                tokio::time::sleep(*REGULAR_INTERVAL).await;
+                            }
+                        });
                         // Check if there is a worker already find its rx channel otherwise create worker and bring its rx channel
+                        let youtube = youtube_url.clone();
+                        let state = data.clone();
                         let should_reuse = data.track_channels.read().contains_key(&youtube_url);
                         let mut rx = if should_reuse {
                             if let Some(rx) = data.track_channels.read().get(&youtube_url) {
                                 rx.clone()
                             } else {
+                                warn!("reuse failure");
                                 break;
                             }
                         } else {
                             let (tx, rx) = tokio::sync::watch::channel(Track::default());
                             let mut worker = match crate::worker::ServerWorker::new(
-                                youtube_url.clone(),
+                                youtube.clone(),
                                 state.clone(),
                             ) {
                                 Ok(worker) => worker,
-                                Err(_) => break,
+                                Err(_) => {
+                                    warn!("creation failure");
+                                    break;
+                                }
                             };
                             match worker.work(tx).await {
                                 Ok(_) => {
-                                    data.track_channels.write().insert(youtube_url, rx.clone());
+                                    data.track_channels
+                                        .write()
+                                        .insert(youtube.clone(), rx.clone());
                                     rx
                                 }
-                                Err(_) => break,
+                                Err(_) => {
+                                    warn!("work failure");
+                                    break;
+                                }
                             }
                         };
+
                         // send new message on channel update
                         let mut session_clone = session.clone();
                         actix_rt::spawn(async move {
+                            // discard first empty value
+                            rx.borrow_and_update();
                             loop {
+                                if rx.changed().await.is_err() {
+                                    break;
+                                }
                                 let track = rx.borrow_and_update().clone();
                                 let ser_track = serde_json::to_string(&track).unwrap();
                                 if session_clone.text(ser_track).await.is_err() {
                                     break;
                                 }
-                                if rx.changed().await.is_err() {
-                                    break;
-                                }
                             }
                         });
 
-                        // if client does not ping long time - close socket
-                        let last_seen = last_seen.clone();
+                        // if client does not ping for some time - close socket
+                        let last_ping = last_ping.clone();
                         let session_clone = session.clone();
                         actix_rt::spawn(async move {
                             loop {
-                                if last_seen.read().elapsed() > Duration::minutes(5) {
+                                if last_ping.read().elapsed() > Duration::seconds(60) {
                                     break;
                                 }
+                                tokio::time::sleep(*REGULAR_INTERVAL).await;
                             }
+                            warn!("Did not receive ping from socket for a while, closing");
                             let _ = session_clone.close(None).await;
                         });
                     }
-                    Err(_) => break,
+                    Err(_) => {
+                        warn!("warning err");
+                        break;
+                    },
                 },
                 Message::Ping(bytes) => {
-                    // client ping updates last instant
-                    *last_seen.write() = Instant::now();
-                    let _ = session.pong(&bytes).await;
+                    // client ping updates last ping and also last requested for server worker
+                    *last_ping.write() = Instant::now();
+                    session.pong(&bytes).await.unwrap();
                 }
                 _ => break,
             }
         }
-
         let _ = session.close(None).await;
     });
 

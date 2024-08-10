@@ -1,11 +1,13 @@
 use crate::config::Config;
 use anyhow::Result;
 
+use futures_util::{SinkExt as _, StreamExt as _, TryStreamExt as _};
 use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::track::Track;
-use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL};
+use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL, TRACK_SOCKET_END_POINT};
 
-use tracing::info;
+use reqwest_websocket::{Message, RequestBuilderExt};
+use tracing::{debug, info, warn};
 use url::Url;
 
 #[cfg(not(feature = "standalone"))]
@@ -29,8 +31,10 @@ use {notify_rust::Notification, notify_rust::Timeout};
 #[cfg(not(feature = "standalone"))]
 pub struct Worker {
     client: Client,
+    requested_url: String,
     track_request_url: String,
     track_send_url: String,
+    track_socket_url: String,
     token: String,
     prev_track_with_count: Option<TrackWithCount>,
 }
@@ -44,15 +48,17 @@ pub struct Worker {
 
 impl Worker {
     pub async fn work(&mut self) {
-        loop {
-            match self.periodic_task().await {
-                Ok(_) => std::thread::sleep(*REGULAR_INTERVAL),
-                Err(e) => {
-                    info!("Problem with: {}", e.to_string());
-                    std::thread::sleep(*FAST_TRY_INTERVAL);
-                }
-            }
-        }
+        // loop {
+        //     match self.periodic_task().await {
+        //         Ok(_) => std::thread::sleep(*REGULAR_INTERVAL),
+        //         Err(e) => {
+        //             info!("Problem with: {}", e.to_string());
+        //             std::thread::sleep(*FAST_TRY_INTERVAL);
+        //         }
+        //     }
+        // }
+
+        self.run_socket_connection().await.unwrap();
     }
 
     async fn periodic_task(&mut self) -> Result<()> {
@@ -64,6 +70,7 @@ impl Worker {
         match prev {
             Some(mut t) if t.track == next_track && t.count == 3 => {
                 self.send_listen(&t.track).await?;
+                #[cfg(not(feature = "standalone"))]
                 info!("Sent listen for: \"{} - {}\"", t.track.artist, t.track.song);
                 t.count += 1;
                 self.prev_track_with_count = Some(t);
@@ -100,7 +107,7 @@ impl Worker {
         Ok(())
     }
 
-    async fn send_listen(&mut self, track: &Track) -> Result<()> {
+    async fn send_listen(&self, track: &Track) -> Result<()> {
         #[cfg(feature = "notify")]
         Notification::new()
             .summary("Scrobbled")
@@ -115,7 +122,7 @@ impl Worker {
         Ok(())
     }
 
-    async fn send_now_playing(&mut self, track: &Track) -> Result<()> {
+    async fn send_now_playing(&self, track: &Track) -> Result<()> {
         #[cfg(feature = "notify")]
         Notification::new()
             .summary("Now playing")
@@ -177,7 +184,56 @@ impl Worker {
             .as_ref()
             .ok_or(ConfigError::EmptyServerConfig)?
             .link
-            .as_str();
+            .as_str()
+            .to_owned();
+
+        let token = Worker::get_token(config, &client, &base_url, &mut config_changed).await?;
+        let track_request_url = format!(
+            "{}{}/{}",
+            base_url,
+            TRACK_END_POINT,
+            percent_encoding::utf8_percent_encode(
+                requested_url.as_str(),
+                percent_encoding::NON_ALPHANUMERIC
+            )
+        );
+        let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
+        info!("Client worker initialized");
+
+        // ws socket url
+        // parse base url to detect http or https
+        let mut url = Url::parse(&base_url)?;
+        if url.scheme() == "https" {
+            url.set_scheme("wss")
+                .map_err(|_| anyhow::Error::msg("url scheme error"))?;
+        } else if url.scheme() == "http" {
+            url.set_scheme("ws")
+                .map_err(|_| anyhow::Error::msg("url scheme error"))?;
+        } else {
+            bail!("Cannot work on outside http/https")
+        }
+        let track_socket_url = url.join(TRACK_SOCKET_END_POINT)?.into();
+
+        Ok((
+            Worker {
+                client,
+                requested_url: requested_url.into(),
+                track_request_url,
+                track_send_url,
+                track_socket_url,
+                token,
+                prev_track_with_count: None,
+            },
+            config_changed,
+        ))
+    }
+
+    async fn get_token(
+        config: &mut Config,
+        client: &Client,
+        base_url: &str,
+        config_changed: &mut bool,
+    ) -> anyhow::Result<String> {
         let token_config = config.session.take();
         let token = match token_config {
             Some(token) => token.token,
@@ -215,41 +271,24 @@ impl Worker {
                     None
                 };
                 let listenbrainz_token = config.listenbrainz.as_ref().map(|l| l.token.to_owned());
-                let token =
-                    Worker::get_token(&client, lastfm_session_key, listenbrainz_token, base_url)
-                        .await?;
-                config_changed = true;
+                let token = Worker::request_token(
+                    &client,
+                    lastfm_session_key,
+                    listenbrainz_token,
+                    base_url,
+                )
+                .await?;
+                *config_changed = true;
                 config.session = Some(TokenConfig {
                     token: token.clone(),
                 });
                 token
             }
         };
-        let track_request_url = format!(
-            "{}{}/{}",
-            base_url,
-            TRACK_END_POINT,
-            percent_encoding::utf8_percent_encode(
-                requested_url.as_str(),
-                percent_encoding::NON_ALPHANUMERIC
-            )
-        );
-        let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
-        info!("Client worker initialized");
-
-        Ok((
-            Worker {
-                client,
-                track_request_url,
-                track_send_url,
-                token,
-                prev_track_with_count: None,
-            },
-            config_changed,
-        ))
+        Ok(token)
     }
 
-    async fn get_token(
+    async fn request_token(
         client: &Client,
         lastfm_session_key: Option<String>,
         listenbrainz_token: Option<String>,
@@ -307,6 +346,49 @@ impl Worker {
             .json::<SessionResponse>()
             .await?;
         Ok(session_response.session_config)
+    }
+
+    async fn run_socket_connection(&self) -> anyhow::Result<()> {
+        let response = Client::default()
+            .get(&self.track_socket_url)
+            .upgrade()
+            .send()
+            .await?;
+        let websocket = response.into_websocket().await?;
+
+        let (mut tx, mut rx) = websocket.split();
+        let mut current_track = Track::default();
+
+        // Send initial Url message
+        tx.send(Message::Text(self.requested_url.clone().into()))
+            .await?;
+
+        // Setup periodic ping message
+        tokio::spawn(async move {
+            loop {
+                if tx.send(Message::Ping(vec![])).await.is_err() {
+                    break;
+                }
+                tokio::time::sleep(*REGULAR_INTERVAL).await;
+            }
+        });
+
+        while let Some(message) = rx.try_next().await? {
+            match message {
+                Message::Text(text) => {
+                    let next_track: Track = serde_json::from_str(&text)?;
+                    if !current_track.is_empty() {
+                        info!("Sent listen for: \"{}\"", current_track);
+                        self.send_listen(&current_track).await?;
+                    }
+                    info!("Sent now playing info for: \"{}\"", next_track);
+                    self.send_now_playing(&next_track).await?;
+                    current_track = next_track;
+                }
+                _ => {}
+            }
+        }
+        Ok(())
     }
 }
 

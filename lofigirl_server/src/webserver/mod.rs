@@ -68,7 +68,7 @@ impl LofiServer {
                     web::get().to(dynamic_track),
                 )
                 // event based track socket endpoint
-                .route(TRACK_SOCKET_END_POINT, web::post().to(track_socket))
+                .route(TRACK_SOCKET_END_POINT, web::get().to(track_socket))
                 .route(SEND_END_POINT, web::post().to(send))
                 .route(LASTFM_SESSION_END_POINT, web::post().to(session))
                 .route(TOKEN_END_POINT, web::post().to(token))

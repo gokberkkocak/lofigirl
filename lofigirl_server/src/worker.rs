@@ -86,18 +86,18 @@ impl InitServerWorker {
                         Ok(track) => {
                             let mut lock = state_clone.seq_tracks.write();
                             lock[idx] = Some(track);
-                            std::thread::sleep(*REGULAR_INTERVAL);
+                            tokio::time::sleep(*REGULAR_INTERVAL).await;
                         }
                         Err(e) => {
                             warn!("Problem with: {}", e);
-                            std::thread::sleep(*FAST_TRY_INTERVAL);
+                            tokio::time::sleep(*FAST_TRY_INTERVAL).await;
                         }
                     }
                 }
             });
             handles.push(handle);
             info!("Image processor worker {} started", idx);
-            std::thread::sleep(artificial_delay);
+            tokio::time::sleep(artificial_delay).await;
         }
         for handle in handles {
             handle.await?;
@@ -119,7 +119,7 @@ impl ServerWorker {
     pub async fn work(&mut self, track_tx: Sender<Track>) -> anyhow::Result<()> {
         let state_clone = self.state.clone();
         let mut image_proc = ImageProcessor::new(self.video_url.clone())?;
-        info!("ServerWorker starting for {}", &image_proc.video_url);
+        info!("New ServerWorker starting for {}", &image_proc.video_url);
         actix_rt::spawn(async move {
             loop {
                 // Check last read to check if we should stop
@@ -141,28 +141,24 @@ impl ServerWorker {
                         break;
                     }
                 }
-                // If the track has changed, update state for rest endpoints and update channel for socket
+                // Snap an image and fetch track info
+                // If the track has changed, update state for REST endpoints and update channel for socket
                 let next_track = image_proc.next_track().await;
                 match next_track {
                     Ok(next_track) => {
-                        state_clone
-                            .tracks
-                            .write()
-                            .entry(image_proc.video_url.clone())
-                            .and_modify(|current_track| {
-                                if next_track != *current_track {
-                                    *current_track = next_track.clone();
-                                }
-                                if track_tx.send(next_track).is_err() {
-                                    warn!("Channel problem")
-                                }
-                            });
+                        let track = next_track.clone();
+                        let old_track = state_clone.tracks.write().insert(image_proc.video_url.clone(), track);
+                        if old_track.filter(|old| *old == next_track ).is_none() {
+                            if track_tx.send(next_track.clone()).is_err() {
+                                warn!("Channel problem")
+                            }
+                        }
                         // lock.insert(image_proc.video_url.clone(), track);
-                        std::thread::sleep(*REGULAR_INTERVAL);
+                        tokio::time::sleep(*REGULAR_INTERVAL).await;
                     }
                     Err(e) => {
                         warn!("Problem with: {}", e);
-                        std::thread::sleep(*FAST_TRY_INTERVAL);
+                        tokio::time::sleep(*FAST_TRY_INTERVAL).await;
                     }
                 }
             }
