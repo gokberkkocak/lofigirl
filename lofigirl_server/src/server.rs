@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::time::Instant;
+
 use crate::session::TokenDB;
 use actix_cors::Cors;
 use actix_web::http::StatusCode;
@@ -16,10 +19,13 @@ use lofigirl_shared_listen::listener::Listener;
 use parking_lot::RwLock;
 use serde::Serialize;
 use thiserror::Error;
+use url::Url;
 
 pub struct AppState {
     pub lastfm_api: Option<LastFMApiConfig>,
-    pub tracks: RwLock<Vec<Option<Track>>>,
+    pub seq_tracks: RwLock<Vec<Option<Track>>>,
+    pub tracks: RwLock<HashMap<Url, Track>>,
+    pub last_requested: RwLock<HashMap<Url, Instant>>,
     pub token_db: TokenDB,
 }
 
@@ -31,13 +37,15 @@ impl AppState {
     ) -> anyhow::Result<AppState> {
         Ok(AppState {
             lastfm_api: api,
-            tracks: RwLock::new(vec![None; nb_links]),
+            seq_tracks: RwLock::new(vec![None; nb_links]),
             token_db: TokenDB::new(token_db_file).await?,
+            tracks: RwLock::new(HashMap::new()),
+            last_requested: RwLock::new(HashMap::new()),
         })
     }
 }
 async fn get_track_with_index(data: web::Data<AppState>, idx: usize) -> Result<HttpResponse> {
-    let lock = data.tracks.read();
+    let lock = data.seq_tracks.read();
     if let Some(track) = lock.get(idx) {
         Ok(HttpResponse::Ok().json(track))
     } else {
@@ -55,8 +63,9 @@ async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
 
 async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Result<HttpResponse> {
     let info = info.into_inner();
-    let mut listener = Listener::new();
-    let (lfm, lb) = data.token_db
+    let mut listener = Listener::default();
+    let (lfm, lb) = data
+        .token_db
         .get_info_from_token(&info.token)
         .await
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
@@ -91,6 +100,34 @@ async fn send(data: web::Data<AppState>, info: web::Json<ScrobbleRequest>) -> Re
     Ok(HttpResponse::Ok().finish())
 }
 
+async fn dynamic_track(data: web::Data<AppState>, url: web::Path<String>) -> Result<HttpResponse> {
+    let youtube_url_string = url.into_inner();
+    let youtube_url = Url::parse(&youtube_url_string)
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    // modify the last requested time
+    // even with explicit drop, clippy still complains about it so wrap it in a block
+    {
+        let mut last_requested = data.last_requested.write();
+        last_requested.insert(youtube_url.clone(), Instant::now());
+    }
+
+    // Check if there is a working image processor
+    if let Some(track) = data.tracks.read().get(&youtube_url) {
+        // return track
+        return Ok(HttpResponse::Ok().json(track));
+    }
+
+    // Create the new worker and send accepted response
+    let state = data.clone();
+    let mut worker = crate::worker::ServerWorker::new(youtube_url, state.clone())
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    worker
+        .work()
+        .await
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    Ok(HttpResponse::Accepted().finish())
+}
+
 async fn session(
     data: web::Data<AppState>,
     info: web::Json<SessionRequest>,
@@ -110,7 +147,8 @@ async fn session(
 
 async fn token(data: web::Data<AppState>, info: web::Json<TokenRequest>) -> Result<HttpResponse> {
     let info = info.into_inner();
-    let token = data.token_db
+    let token = data
+        .token_db
         .get_or_generate_token(
             info.lastfm_session_key.as_ref(),
             info.listenbrainz_token.as_ref(),
@@ -141,6 +179,10 @@ impl LofiServer {
                 .route(
                     &format!("{}{}", TRACK_END_POINT, SLEEP_TRACK_API_END_POINT),
                     web::get().to(get_second),
+                )
+                .route(
+                    &format!("{}/{{url}}", TRACK_END_POINT),
+                    web::get().to(dynamic_track),
                 )
                 .route(SEND_END_POINT, web::post().to(send))
                 .route(LASTFM_SESSION_END_POINT, web::post().to(session))

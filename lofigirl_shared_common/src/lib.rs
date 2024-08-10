@@ -2,12 +2,12 @@ pub mod api;
 pub mod config;
 pub mod track;
 
-use std::time::Duration;
+use std::{sync::LazyLock, time::Duration};
 
-use once_cell::sync::Lazy;
-
-pub static REGULAR_INTERVAL: Lazy<Duration> = Lazy::new(|| Duration::from_secs(15));
-pub static FAST_TRY_INTERVAL: Lazy<Duration> = Lazy::new(|| Duration::from_secs(5));
+pub static REGULAR_INTERVAL: LazyLock<Duration> = LazyLock::new(|| Duration::from_secs(15));
+pub static FAST_TRY_INTERVAL: LazyLock<Duration> = LazyLock::new(|| Duration::from_secs(5));
+pub static STREAM_LAST_READ_TIMEOUT: LazyLock<Duration> =
+    LazyLock::new(|| Duration::from_secs(300));
 pub const SEND_END_POINT: &str = "/send";
 pub const TRACK_END_POINT: &str = "/track";
 pub const LASTFM_SESSION_END_POINT: &str = "/session";

@@ -4,7 +4,6 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use strsim::jaro;
 use thiserror::Error;
-use tracing::info;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Track {
@@ -24,7 +23,7 @@ impl Track {
 impl PartialEq for Track {
     fn eq(&self, other: &Track) -> bool {
         let sim = jaro(&self.artist, &other.artist) * jaro(&self.song, &other.song);
-        info!("Track similarity with previous track: {}", sim);
+        tracing::debug!("Track similarity: {}", sim);
         sim > 0.95
     }
 }

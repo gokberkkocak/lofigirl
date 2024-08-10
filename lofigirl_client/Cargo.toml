@@ -18,10 +18,11 @@ anyhow = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
-url = { version = "2.5", optional = true}
+url = "2.5"
 notify-rust = { version = "4.11", optional = true }
+percent-encoding = "2.3"
 
 
 [features]
-standalone = ["lofigirl_sys", "url"]
+standalone = ["lofigirl_sys"]
 notify = ["notify-rust"]
