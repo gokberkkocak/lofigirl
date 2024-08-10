@@ -10,6 +10,7 @@ pub static STREAM_LAST_READ_TIMEOUT: LazyLock<Duration> =
     LazyLock::new(|| Duration::from_secs(300));
 pub const SEND_END_POINT: &str = "/send";
 pub const TRACK_END_POINT: &str = "/track";
+pub const TRACK_SOCKET_END_POINT: &str = "/track_ws";
 pub const LASTFM_SESSION_END_POINT: &str = "/session";
 pub const TOKEN_END_POINT: &str = "/token";
 pub const HEALTH_END_POINT: &str = "/health";
