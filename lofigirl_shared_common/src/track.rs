@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use strsim::jaro;
 use thiserror::Error;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Track {
     pub artist: String,
     pub song: String,

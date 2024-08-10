@@ -1,8 +1,11 @@
-use crate::{config::ServerConfig, server::AppState};
+use crate::{config::ServerConfig, webserver::AppState};
 use actix_web::web;
-use anyhow::{bail, Context, Result};
-use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL, STREAM_LAST_READ_TIMEOUT};
+use anyhow::{bail, Result};
+use lofigirl_shared_common::{
+    track::Track, FAST_TRY_INTERVAL, REGULAR_INTERVAL, STREAM_LAST_READ_TIMEOUT,
+};
 use lofigirl_sys::image::ImageProcessor;
+use tokio::sync::watch::Sender;
 use tracing::{info, warn};
 use url::Url;
 
@@ -105,21 +108,17 @@ impl InitServerWorker {
 
 pub struct ServerWorker {
     pub state: web::Data<AppState>,
-    image_proc: Option<ImageProcessor>,
+    video_url: Url,
 }
 
 impl ServerWorker {
     pub fn new(video_url: Url, state: web::Data<AppState>) -> Result<ServerWorker> {
-        let image_proc = Some(ImageProcessor::new(video_url)?);
-        Ok(ServerWorker { state, image_proc })
+        Ok(ServerWorker { state, video_url })
     }
 
-    pub async fn work(&mut self) -> anyhow::Result<()> {
+    pub async fn work(&mut self, track_tx: Sender<Track>) -> anyhow::Result<()> {
         let state_clone = self.state.clone();
-        let mut image_proc = self
-            .image_proc
-            .take()
-            .context("image processor not found")?;
+        let mut image_proc = ImageProcessor::new(self.video_url.clone())?;
         info!("ServerWorker starting for {}", &image_proc.video_url);
         actix_rt::spawn(async move {
             loop {
@@ -142,12 +141,23 @@ impl ServerWorker {
                         break;
                     }
                 }
-                // Set the track in the state
+                // If the track has changed, update state for rest endpoints and update channel for socket
                 let next_track = image_proc.next_track().await;
                 match next_track {
-                    Ok(track) => {
-                        let mut lock = state_clone.tracks.write();
-                        lock.insert(image_proc.video_url.clone(), track);
+                    Ok(next_track) => {
+                        state_clone
+                            .tracks
+                            .write()
+                            .entry(image_proc.video_url.clone())
+                            .and_modify(|current_track| {
+                                if next_track != *current_track {
+                                    *current_track = next_track.clone();
+                                }
+                                if track_tx.send(next_track).is_err() {
+                                    warn!("Channel problem")
+                                }
+                            });
+                        // lock.insert(image_proc.video_url.clone(), track);
                         std::thread::sleep(*REGULAR_INTERVAL);
                     }
                     Err(e) => {
