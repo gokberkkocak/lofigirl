@@ -10,15 +10,16 @@ This project uses ```opencv``` library to capture/process images and ```tesserac
 
 ## Modules
 
-This project includes different modules and several features which you can choose according to your preference. The list of binaries/frontend which are compiled on releases are:
+This project includes different modules and several features which you can choose according to your preference. This project can be used in two ways:
 
-- Lofigirl Server - A REST API http broadcasting server module which does the image 
-processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It keeps user sessions and sends the listening information to multiple backends.
-- Lofigirl CLI Client - Includes Optional multi-os notification system.
-    - Default Client - A client-only version which doesn't require ```opencv``` or ```tesseract-ocr``` dependencies. It uses the given server configuration to communicate with the ```server``` module using the REST API.
-    - Standalone - The standalone version which does the images processing/OCR and sends the listening information data on a regular interval. Requires all the dependencies to be present in the system.
-- Lofigirl Web Client - Compiled to wasm, runs on browser and communicates with the ```server``` module using the REST API.
-- Lofigirl Flutter Client - Flutter multi platform front-end that communicates with the ```server``` module using the REST API.
+- Standalone CLI:
+    - If the client module compiled with `standalone` feature, the system does the image processing of the given url, ocr and sends listening information for the user to `lastfm` and/or `listenbrainz`. This module requires all heavy dependencies i.e ```opencv``` and ```tesseract-ocr``` to be available in the system.
+- Server / Client:
+    - Server - A REST / Websocket API broadcasting server module which does the image processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It can keep user sessions and also sends listening information to `lastfm` and `listenbrainz`.
+    - Client - There are multiple thin clients that can communicate with the server:
+        - CLI - It uses the given server configuration to communicate with the ```server``` module using the REST / Websocket API.
+        - Lofigirl Web Client - Compiled to wasm, runs on browser and communicates with the ```server``` module using the REST API.
+        - Lofigirl Flutter Client - Flutter multi platform front-end that communicates with the ```server``` module using the REST API.
 
 ## Installing all dependencies
 
