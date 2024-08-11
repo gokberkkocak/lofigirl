@@ -1,8 +1,11 @@
-use crate::{config::ServerConfig, server::AppState};
+use crate::{config::ServerConfig, webserver::AppState};
 use actix_web::web;
-use anyhow::{bail, Context, Result};
-use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL, STREAM_LAST_READ_TIMEOUT};
+use anyhow::{bail, Result};
+use lofigirl_shared_common::{
+    track::Track, FAST_TRY_INTERVAL, REGULAR_INTERVAL, STREAM_LAST_READ_TIMEOUT,
+};
 use lofigirl_sys::image::ImageProcessor;
+use tokio::sync::watch::Sender;
 use tracing::{info, warn};
 use url::Url;
 
@@ -81,20 +84,22 @@ impl InitServerWorker {
                     let next_track = image_proc.next_track().await;
                     match next_track {
                         Ok(track) => {
-                            let mut lock = state_clone.seq_tracks.write();
-                            lock[idx] = Some(track);
-                            std::thread::sleep(*REGULAR_INTERVAL);
+                            {
+                                let mut lock = state_clone.seq_tracks.write();
+                                lock[idx] = Some(track);
+                            }
+                            tokio::time::sleep(*REGULAR_INTERVAL).await;
                         }
                         Err(e) => {
                             warn!("Problem with: {}", e);
-                            std::thread::sleep(*FAST_TRY_INTERVAL);
+                            tokio::time::sleep(*FAST_TRY_INTERVAL).await;
                         }
                     }
                 }
             });
             handles.push(handle);
             info!("Image processor worker {} started", idx);
-            std::thread::sleep(artificial_delay);
+            tokio::time::sleep(artificial_delay).await;
         }
         for handle in handles {
             handle.await?;
@@ -105,22 +110,18 @@ impl InitServerWorker {
 
 pub struct ServerWorker {
     pub state: web::Data<AppState>,
-    image_proc: Option<ImageProcessor>,
+    video_url: Url,
 }
 
 impl ServerWorker {
     pub fn new(video_url: Url, state: web::Data<AppState>) -> Result<ServerWorker> {
-        let image_proc = Some(ImageProcessor::new(video_url)?);
-        Ok(ServerWorker { state, image_proc })
+        Ok(ServerWorker { state, video_url })
     }
 
-    pub async fn work(&mut self) -> anyhow::Result<()> {
+    pub async fn work(&mut self, track_tx: Sender<Track>) -> anyhow::Result<()> {
         let state_clone = self.state.clone();
-        let mut image_proc = self
-            .image_proc
-            .take()
-            .context("image processor not found")?;
-        info!("ServerWorker starting for {}", &image_proc.video_url);
+        let mut image_proc = ImageProcessor::new(self.video_url.clone())?;
+        info!("New ServerWorker starting for {}", &image_proc.video_url);
         actix_rt::spawn(async move {
             loop {
                 // Check last read to check if we should stop
@@ -142,17 +143,27 @@ impl ServerWorker {
                         break;
                     }
                 }
-                // Set the track in the state
+                // Snap an image and fetch track info
+                // If the track has changed, update state for REST endpoints and update channel for socket
                 let next_track = image_proc.next_track().await;
                 match next_track {
-                    Ok(track) => {
-                        let mut lock = state_clone.tracks.write();
-                        lock.insert(image_proc.video_url.clone(), track);
-                        std::thread::sleep(*REGULAR_INTERVAL);
+                    Ok(next_track) => {
+                        let track = next_track.clone();
+                        let old_track = state_clone
+                            .tracks
+                            .write()
+                            .insert(image_proc.video_url.clone(), track);
+                        if old_track.filter(|old| *old == next_track).is_none()
+                            && track_tx.send(next_track.clone()).is_err()
+                        {
+                            warn!("Channel problem")
+                        }
+                        // lock.insert(image_proc.video_url.clone(), track);
+                        tokio::time::sleep(*REGULAR_INTERVAL).await;
                     }
                     Err(e) => {
                         warn!("Problem with: {}", e);
-                        std::thread::sleep(*FAST_TRY_INTERVAL);
+                        tokio::time::sleep(*FAST_TRY_INTERVAL).await;
                     }
                 }
             }

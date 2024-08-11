@@ -2,3 +2,4 @@ target
 config.toml
 pkg
 token.db*
+debug_*.jpg

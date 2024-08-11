@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use strsim::jaro;
 use thiserror::Error;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Track {
     pub artist: String,
     pub song: String,
@@ -31,6 +31,12 @@ impl PartialEq for Track {
 impl fmt::Display for Track {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} - {}", self.artist, self.song)
+    }
+}
+
+impl Track {
+    pub fn is_empty(&self) -> bool {
+        self.artist.len() == 0 && self.song.len() == 0
     }
 }
 

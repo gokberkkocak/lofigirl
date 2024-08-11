@@ -1,12 +1,14 @@
 mod config;
-mod server;
 mod session;
+mod webserver;
 mod worker;
 
-use crate::config::ServerConfig;
-use clap::Parser;
-use server::LofiServer;
 use std::path::PathBuf;
+
+use clap::Parser;
+
+use crate::config::ServerConfig;
+use webserver::LofiServer;
 use worker::InitServerWorker;
 
 const APP_NAME: &str = "lofigirl_server";
