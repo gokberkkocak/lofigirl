@@ -1,6 +1,6 @@
 mod config;
-mod webserver;
 mod session;
+mod webserver;
 mod worker;
 
 use std::path::PathBuf;

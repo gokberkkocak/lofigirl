@@ -42,6 +42,6 @@ async fn body() -> Result<()> {
         // modify config file so that we can store token and/or session_key
         config.to_toml(&opt.config).await?;
     }
-    worker.work().await;
+    worker.work().await?;
     Ok(())
 }

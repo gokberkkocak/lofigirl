@@ -36,11 +36,7 @@ impl fmt::Display for Track {
 
 impl Track {
     pub fn is_empty(&self) -> bool {
-        if self.artist.len() == 0 && self.song.len() == 0 {
-            true
-        } else {
-            false
-        }
+        self.artist.len() == 0 && self.song.len() == 0
     }
 }
 

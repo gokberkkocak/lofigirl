@@ -215,7 +215,7 @@ pub(crate) async fn track_socket(
                     Err(_) => {
                         warn!("warning err");
                         break;
-                    },
+                    }
                 },
                 Message::Ping(bytes) => {
                     // client ping updates last ping and also last requested for server worker

@@ -1,30 +1,41 @@
 use crate::config::Config;
 use anyhow::Result;
 
-use futures_util::{SinkExt as _, StreamExt as _, TryStreamExt as _};
 use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::track::Track;
-use lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL, TRACK_SOCKET_END_POINT};
 
-use reqwest_websocket::{Message, RequestBuilderExt};
-use tracing::{debug, info, warn};
 use url::Url;
 
 #[cfg(not(feature = "standalone"))]
 use {
-    crate::config::TokenConfig, anyhow::bail, lofigirl_shared_common::api::Action,
-    lofigirl_shared_common::api::ScrobbleRequest, lofigirl_shared_common::api::SessionRequest,
-    lofigirl_shared_common::api::SessionResponse, lofigirl_shared_common::api::TokenRequest,
-    lofigirl_shared_common::api::TokenResponse, lofigirl_shared_common::config::ConfigError,
+    crate::config::TokenConfig,
+    anyhow::bail,
+    futures_util::{SinkExt as _, StreamExt as _, TryStreamExt as _},
+    lofigirl_shared_common::api::Action,
+    lofigirl_shared_common::api::ScrobbleRequest,
+    lofigirl_shared_common::api::SessionRequest,
+    lofigirl_shared_common::api::SessionResponse,
+    lofigirl_shared_common::api::TokenRequest,
+    lofigirl_shared_common::api::TokenResponse,
+    lofigirl_shared_common::config::ConfigError,
     lofigirl_shared_common::config::LastFMClientPasswordConfig,
     lofigirl_shared_common::config::LastFMClientSessionConfig,
-    lofigirl_shared_common::LASTFM_SESSION_END_POINT, lofigirl_shared_common::SEND_END_POINT,
-    lofigirl_shared_common::TOKEN_END_POINT, lofigirl_shared_common::TRACK_END_POINT,
+    lofigirl_shared_common::LASTFM_SESSION_END_POINT,
+    lofigirl_shared_common::SEND_END_POINT,
+    lofigirl_shared_common::TOKEN_END_POINT,
+    lofigirl_shared_common::{REGULAR_INTERVAL, TRACK_SOCKET_END_POINT},
     reqwest::Client,
+    reqwest_websocket::{Message, RequestBuilderExt},
+    tracing::info,
 };
 
 #[cfg(feature = "standalone")]
-use {lofigirl_shared_listen::listener::Listener, lofigirl_sys::image::ImageProcessor};
+use {
+    lofigirl_shared_common::{FAST_TRY_INTERVAL, REGULAR_INTERVAL},
+    lofigirl_shared_listen::listener::Listener,
+    lofigirl_sys::image::ImageProcessor,
+    tracing::warn,
+};
 #[cfg(feature = "notify")]
 use {notify_rust::Notification, notify_rust::Timeout};
 
@@ -32,80 +43,68 @@ use {notify_rust::Notification, notify_rust::Timeout};
 pub struct Worker {
     client: Client,
     requested_url: String,
-    track_request_url: String,
     track_send_url: String,
     track_socket_url: String,
     token: String,
-    prev_track_with_count: Option<TrackWithCount>,
 }
 
 #[cfg(feature = "standalone")]
 pub struct Worker {
     listener: Listener,
-    image_proc: ImageProcessor,
-    prev_track_with_count: Option<TrackWithCount>,
+    url: Url,
 }
 
 impl Worker {
-    pub async fn work(&mut self) {
-        // loop {
-        //     match self.periodic_task().await {
-        //         Ok(_) => std::thread::sleep(*REGULAR_INTERVAL),
-        //         Err(e) => {
-        //             info!("Problem with: {}", e.to_string());
-        //             std::thread::sleep(*FAST_TRY_INTERVAL);
-        //         }
-        //     }
-        // }
-
-        self.run_socket_connection().await.unwrap();
-    }
-
-    async fn periodic_task(&mut self) -> Result<()> {
-        #[cfg(not(feature = "standalone"))]
-        let next_track = self.get_track().await?;
-        #[cfg(feature = "standalone")]
-        let next_track = self.image_proc.next_track().await?;
-        let prev = self.prev_track_with_count.take();
-        match prev {
-            Some(mut t) if t.track == next_track && t.count == 3 => {
-                self.send_listen(&t.track).await?;
-                #[cfg(not(feature = "standalone"))]
-                info!("Sent listen for: \"{} - {}\"", t.track.artist, t.track.song);
-                t.count += 1;
-                self.prev_track_with_count = Some(t);
-            }
-            Some(mut t) if t.track == next_track => {
-                t.count += 1;
-                self.prev_track_with_count = Some(t);
-            }
-            Some(t) if t.count < 3 => {
-                self.send_listen(&t.track).await?;
-                #[cfg(not(feature = "standalone"))]
-                info!(
-                    "Sent listen info for: \"{} - {}\"",
-                    t.track.artist, t.track.song
-                );
-                self.send_now_playing(&next_track).await?;
-                #[cfg(not(feature = "standalone"))]
-                info!(
-                    "Sent now playing info for: \"{} - {}\"",
-                    next_track.artist, next_track.song
-                );
-                self.prev_track_with_count = Some(TrackWithCount::new(next_track));
-            }
-            _ => {
-                self.send_now_playing(&next_track).await?;
-                #[cfg(not(feature = "standalone"))]
-                info!(
-                    "Sent now playing info for: \"{} - {}\"",
-                    next_track.artist, next_track.song
-                );
-                self.prev_track_with_count = Some(TrackWithCount::new(next_track));
-            }
-        }
+    pub async fn work(&mut self) -> anyhow::Result<()> {
+        self.work_with_connection().await?;
         Ok(())
     }
+
+    // async fn periodic_task(&mut self) -> Result<()> {
+    //     #[cfg(not(feature = "standalone"))]
+    //     let next_track = self.get_track().await?;
+    //     #[cfg(feature = "standalone")]
+    //     let next_track = self.image_proc.next_track().await?;
+    //     let prev = self.prev_track_with_count.take();
+    //     match prev {
+    //         Some(mut t) if t.track == next_track && t.count == 3 => {
+    //             self.send_listen(&t.track).await?;
+    //             #[cfg(not(feature = "standalone"))]
+    //             info!("Sent listen for: \"{} - {}\"", t.track.artist, t.track.song);
+    //             t.count += 1;
+    //             self.prev_track_with_count = Some(t);
+    //         }
+    //         Some(mut t) if t.track == next_track => {
+    //             t.count += 1;
+    //             self.prev_track_with_count = Some(t);
+    //         }
+    //         Some(t) if t.count < 3 => {
+    //             self.send_listen(&t.track).await?;
+    //             #[cfg(not(feature = "standalone"))]
+    //             info!(
+    //                 "Sent listen info for: \"{} - {}\"",
+    //                 t.track.artist, t.track.song
+    //             );
+    //             self.send_now_playing(&next_track).await?;
+    //             #[cfg(not(feature = "standalone"))]
+    //             info!(
+    //                 "Sent now playing info for: \"{} - {}\"",
+    //                 next_track.artist, next_track.song
+    //             );
+    //             self.prev_track_with_count = Some(TrackWithCount::new(next_track));
+    //         }
+    //         _ => {
+    //             self.send_now_playing(&next_track).await?;
+    //             #[cfg(not(feature = "standalone"))]
+    //             info!(
+    //                 "Sent now playing info for: \"{} - {}\"",
+    //                 next_track.artist, next_track.song
+    //             );
+    //             self.prev_track_with_count = Some(TrackWithCount::new(next_track));
+    //         }
+    //     }
+    //     Ok(())
+    // }
 
     async fn send_listen(&self, track: &Track) -> Result<()> {
         #[cfg(feature = "notify")]
@@ -140,9 +139,8 @@ impl Worker {
 
 #[cfg(feature = "standalone")]
 impl Worker {
-    pub async fn new(config: &mut Config, requested_url: Url) -> Result<(Worker, bool)> {
+    pub async fn new(config: &mut Config, url: Url) -> Result<(Worker, bool)> {
         let mut config_changed = false;
-        let image_proc = ImageProcessor::new(requested_url)?;
         let lastfm_session_config = if let Some(client) = &config.lastfm {
             if let Some(api) = &config.lastfm_api {
                 config_changed = true;
@@ -163,14 +161,52 @@ impl Worker {
         if let Some(listenbrainz) = &config.listenbrainz {
             listener.set_listenbrainz_listener(listenbrainz)?;
         }
-        Ok((
-            Worker {
-                listener,
-                image_proc,
-                prev_track_with_count: None,
-            },
-            config_changed,
-        ))
+        Ok((Worker { listener, url }, config_changed))
+    }
+
+    async fn work_with_connection(&self) -> anyhow::Result<()> {
+        let (tx, mut rx) = tokio::sync::watch::channel(Track::default());
+        // periodic snap image task
+        let mut image_proc = ImageProcessor::new(self.url.clone())?;
+        tokio::spawn(async move {
+            let mut current_track: Track = Track::default();
+            loop {
+                let next_track = image_proc.next_track().await;
+                match next_track {
+                    Ok(next_track) => {
+                        if current_track != next_track {
+                            current_track = next_track;
+                            if tx.send(current_track.clone()).is_err() {
+                                warn!("Channel problem");
+                            }
+                        }
+                        tokio::time::sleep(*REGULAR_INTERVAL).await;
+                    }
+                    Err(e) => {
+                        warn!("Problem with: {}", e);
+                        tokio::time::sleep(*FAST_TRY_INTERVAL).await;
+                    }
+                }
+            }
+        });
+
+        // listen channel
+        let mut current_track = Track::default();
+        // discard first empty value
+        rx.borrow_and_update();
+        loop {
+            if rx.changed().await.is_err() {
+                break;
+            }
+            let next_track = rx.borrow_and_update().clone();
+            if !current_track.is_empty() {
+                self.send_listen(&current_track).await?;
+            }
+            self.send_now_playing(&next_track).await?;
+            current_track = next_track;
+        }
+
+        Ok(())
     }
 }
 
@@ -188,15 +224,6 @@ impl Worker {
             .to_owned();
 
         let token = Worker::get_token(config, &client, &base_url, &mut config_changed).await?;
-        let track_request_url = format!(
-            "{}{}/{}",
-            base_url,
-            TRACK_END_POINT,
-            percent_encoding::utf8_percent_encode(
-                requested_url.as_str(),
-                percent_encoding::NON_ALPHANUMERIC
-            )
-        );
         let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
         info!("Client worker initialized");
 
@@ -218,11 +245,9 @@ impl Worker {
             Worker {
                 client,
                 requested_url: requested_url.into(),
-                track_request_url,
                 track_send_url,
                 track_socket_url,
                 token,
-                prev_track_with_count: None,
             },
             config_changed,
         ))
@@ -320,17 +345,6 @@ impl Worker {
         Ok(())
     }
 
-    pub async fn get_track(&self) -> Result<Track> {
-        let response = self.client.get(&self.track_request_url).send().await?;
-        // if response is 202 bail with different error
-        if response.status().as_u16() == 202 {
-            bail!("Track is not available yet. Will try again.");
-        }
-        let content = response.text().await?;
-        let track: Track = serde_json::from_str(&content)?;
-        Ok(track)
-    }
-
     async fn get_session(
         client: &Client,
         password_config: &LastFMClientPasswordConfig,
@@ -348,7 +362,7 @@ impl Worker {
         Ok(session_response.session_config)
     }
 
-    async fn run_socket_connection(&self) -> anyhow::Result<()> {
+    async fn work_with_connection(&self) -> anyhow::Result<()> {
         let response = Client::default()
             .get(&self.track_socket_url)
             .upgrade()
@@ -389,16 +403,5 @@ impl Worker {
             }
         }
         Ok(())
-    }
-}
-
-struct TrackWithCount {
-    pub track: Track,
-    pub count: usize,
-}
-
-impl TrackWithCount {
-    fn new(track: Track) -> TrackWithCount {
-        TrackWithCount { track, count: 1 }
     }
 }

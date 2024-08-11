@@ -84,8 +84,10 @@ impl InitServerWorker {
                     let next_track = image_proc.next_track().await;
                     match next_track {
                         Ok(track) => {
-                            let mut lock = state_clone.seq_tracks.write();
-                            lock[idx] = Some(track);
+                            {
+                                let mut lock = state_clone.seq_tracks.write();
+                                lock[idx] = Some(track);
+                            }
                             tokio::time::sleep(*REGULAR_INTERVAL).await;
                         }
                         Err(e) => {
@@ -147,11 +149,14 @@ impl ServerWorker {
                 match next_track {
                     Ok(next_track) => {
                         let track = next_track.clone();
-                        let old_track = state_clone.tracks.write().insert(image_proc.video_url.clone(), track);
-                        if old_track.filter(|old| *old == next_track ).is_none() {
-                            if track_tx.send(next_track.clone()).is_err() {
-                                warn!("Channel problem")
-                            }
+                        let old_track = state_clone
+                            .tracks
+                            .write()
+                            .insert(image_proc.video_url.clone(), track);
+                        if old_track.filter(|old| *old == next_track).is_none()
+                            && track_tx.send(next_track.clone()).is_err()
+                        {
+                            warn!("Channel problem")
                         }
                         // lock.insert(image_proc.video_url.clone(), track);
                         tokio::time::sleep(*REGULAR_INTERVAL).await;
