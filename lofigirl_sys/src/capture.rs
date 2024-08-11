@@ -57,14 +57,12 @@ impl YoutubeLinkCapturer {
         })
     }
     pub async fn get_raw_link(&self, url: &Url) -> Result<String> {
-        info!("will capture livestream");
         let video_options = rusty_ytdl::VideoOptions {
             quality: rusty_ytdl::VideoQuality::HighestVideo,
             ..Default::default()
         };
         let video = rusty_ytdl::Video::new_with_options(url.as_str(), video_options)?;
         let stream = video.stream().await?;
-        info!("livestream is captured");
         // get one chunk and save to temp
         let mut raw_file = NamedTempFile::new_in(&self.temp_dir)?;
         if let Some(chunk) = stream.chunk().await? {

@@ -60,52 +60,6 @@ impl Worker {
         Ok(())
     }
 
-    // async fn periodic_task(&mut self) -> Result<()> {
-    //     #[cfg(not(feature = "standalone"))]
-    //     let next_track = self.get_track().await?;
-    //     #[cfg(feature = "standalone")]
-    //     let next_track = self.image_proc.next_track().await?;
-    //     let prev = self.prev_track_with_count.take();
-    //     match prev {
-    //         Some(mut t) if t.track == next_track && t.count == 3 => {
-    //             self.send_listen(&t.track).await?;
-    //             #[cfg(not(feature = "standalone"))]
-    //             info!("Sent listen for: \"{} - {}\"", t.track.artist, t.track.song);
-    //             t.count += 1;
-    //             self.prev_track_with_count = Some(t);
-    //         }
-    //         Some(mut t) if t.track == next_track => {
-    //             t.count += 1;
-    //             self.prev_track_with_count = Some(t);
-    //         }
-    //         Some(t) if t.count < 3 => {
-    //             self.send_listen(&t.track).await?;
-    //             #[cfg(not(feature = "standalone"))]
-    //             info!(
-    //                 "Sent listen info for: \"{} - {}\"",
-    //                 t.track.artist, t.track.song
-    //             );
-    //             self.send_now_playing(&next_track).await?;
-    //             #[cfg(not(feature = "standalone"))]
-    //             info!(
-    //                 "Sent now playing info for: \"{} - {}\"",
-    //                 next_track.artist, next_track.song
-    //             );
-    //             self.prev_track_with_count = Some(TrackWithCount::new(next_track));
-    //         }
-    //         _ => {
-    //             self.send_now_playing(&next_track).await?;
-    //             #[cfg(not(feature = "standalone"))]
-    //             info!(
-    //                 "Sent now playing info for: \"{} - {}\"",
-    //                 next_track.artist, next_track.song
-    //             );
-    //             self.prev_track_with_count = Some(TrackWithCount::new(next_track));
-    //         }
-    //     }
-    //     Ok(())
-    // }
-
     async fn send_listen(&self, track: &Track) -> Result<()> {
         #[cfg(feature = "notify")]
         Notification::new()
@@ -268,7 +222,7 @@ impl Worker {
                         lofigirl_shared_common::config::LastFMClientConfig::PasswordAuth(p) => {
                             Some(
                                 Worker::get_session(
-                                    &client,
+                                    client,
                                     p,
                                     config
                                         .server
@@ -296,13 +250,9 @@ impl Worker {
                     None
                 };
                 let listenbrainz_token = config.listenbrainz.as_ref().map(|l| l.token.to_owned());
-                let token = Worker::request_token(
-                    &client,
-                    lastfm_session_key,
-                    listenbrainz_token,
-                    base_url,
-                )
-                .await?;
+                let token =
+                    Worker::request_token(client, lastfm_session_key, listenbrainz_token, base_url)
+                        .await?;
                 *config_changed = true;
                 config.session = Some(TokenConfig {
                     token: token.clone(),
@@ -374,8 +324,7 @@ impl Worker {
         let mut current_track = Track::default();
 
         // Send initial Url message
-        tx.send(Message::Text(self.requested_url.clone().into()))
-            .await?;
+        tx.send(Message::Text(self.requested_url.clone())).await?;
 
         // Setup periodic ping message
         tokio::spawn(async move {
@@ -388,18 +337,15 @@ impl Worker {
         });
 
         while let Some(message) = rx.try_next().await? {
-            match message {
-                Message::Text(text) => {
-                    let next_track: Track = serde_json::from_str(&text)?;
-                    if !current_track.is_empty() {
-                        info!("Sent listen for: \"{}\"", current_track);
-                        self.send_listen(&current_track).await?;
-                    }
-                    info!("Sent now playing info for: \"{}\"", next_track);
-                    self.send_now_playing(&next_track).await?;
-                    current_track = next_track;
+            if let Message::Text(text) = message {
+                let next_track: Track = serde_json::from_str(&text)?;
+                if !current_track.is_empty() {
+                    info!("Sent listen for: \"{}\"", current_track);
+                    self.send_listen(&current_track).await?;
                 }
-                _ => {}
+                info!("Sent now playing info for: \"{}\"", next_track);
+                self.send_now_playing(&next_track).await?;
+                current_track = next_track;
             }
         }
         Ok(())
