@@ -35,7 +35,7 @@ cargo build --release -p lofigirl_server
 ## Example Config
 
 ```toml
-[video]
+[video] # soon to be deprecated in favour of dynamic track endpoint
 links = [
     "https::///www.youtube.com/something",
     "https::///www.youtube.com/something", # optional
@@ -51,22 +51,121 @@ You might keep other config fields in your config files which will be ignored.
 
 ## Usage
 ```
-lofigirl_server 0.1.1
 Scrobble the tracks you listen on lofigirl streams
 
-USAGE:
-    lofigirl_server [FLAGS] [OPTIONS]
+Usage: lofigirl_server [OPTIONS]
 
-FLAGS:
-    -h, --help          Prints help information
-    -o, --only-first    Only provide information for the first given link
-    -V, --version       Prints version information
-
-OPTIONS:
-    -c, --config <config>    Configuration toml file [default: config.toml]
+Options:
+  -c, --config <CONFIG>  Configuration toml file [default: config.toml]
+  -h, --help             Print help
+  -V, --version          Print version
 ```
 
-## Install Lofigirl-Server as a service
+## Endpoints
+
+### GET `/track/{encoded_url}`
+
+#### Response
+
+`200`
+
+```json
+{
+    "artist": "XXX",
+    "song": "XXX",
+}
+```
+
+`202` 
+
+Process started but not ready.
+
+### POST `/send`
+
+#### Request
+
+```json
+{
+    "token": "XXX", // token is not in header for now
+    "action": "Listened" | "Playing Now"  
+    "track": {
+        "artist": "XXX",
+        "song": "XXX",
+    },
+}
+```
+
+### Response
+
+`200`
+
+### GET `/health`
+
+#### Response
+
+`200`
+
+### POST `/session`
+
+#### Request
+
+```json
+{
+    "password_config": {
+            "username": "XXX",
+            "password": "XXX",
+    }
+}
+```
+
+#### Response
+
+`200`
+
+```json
+{
+    "session_config": {
+        "session_key": "XXX"
+    }
+}
+```
+
+### POST `/token`
+
+#### Request Body
+
+```json
+{
+    "lastfm_session_key": "XXX", // either is optional, at least one should be present
+    "listenbrainz_token": "XXX", // either is optional, at least one should be present
+}
+```
+
+#### Response Body
+
+```json
+{
+    "token": "XXX"
+}
+```
+
+### GET `/track_ws`
+
+#### Client side
+
+Initialises the socket with a `text` message which includes the requested url and with this, the client is subscribed to track retrieval.
+
+After the initial agreemen, the client is tasked to send periodic `ping` messages to inform the server that they are still alive and demanding track changes.
+
+No authentication on the socket for now.
+
+#### Server side
+
+After a client is succesfully subscribed, the server sends the serialised track information (in json) in the socket channel whenever the track information changes for the requested url.
+
+Responds the subscribed client's `ping` messages with `pong`. If the server does not receive a ping from a client for `60 seconds`, it drops the socket. 
+
+## Install Lofi Girl Server as a service
 
 ### Using Docker/Podman
 

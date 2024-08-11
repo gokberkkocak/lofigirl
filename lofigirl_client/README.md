@@ -5,7 +5,13 @@
 - Standalone - When activated, it allows serverless execution of the system. As it is previously stated, it requires opencv/tesseract dependencies to be available system wide.
 - Notify - When activated, it provides notification support for three operating systems linux, windows and macos.
 
-![asda](../images/client_notifications.png)
+    example on Linux with mako on Sway:
+
+    ![linux](../images/client_notifications_linux.png)
+
+    example on Windows:
+    
+    ![windows](../images/client_notifications_windows.png)
 
 ## Compiling
 
@@ -56,17 +62,19 @@ You might keep have other config fields in your config files which will be ignor
 ## Usage
 
 ```
-lofigirl 0.1.1
 Scrobble the tracks you listen on lofigirl streams
 
-USAGE:
-    lofigirl [FLAGS] [OPTIONS]
+Usage: lofigirl_client [OPTIONS] --url <URL>
 
-FLAGS:
-    -h, --help       Prints help information
-    -s, --second     Use second video link for listen info
-    -V, --version    Prints version information
-
-OPTIONS:
-    -c, --config <config>    Configuration toml file [default: config.toml]
+Options:
+  -c, --config <CONFIG>  Configuration toml file [default: config.toml]
+  -u, --url <URL>        LofiGirl Youtube stream URL
+  -h, --help             Print help
+  -V, --version          Print version
 ```
+
+Example:
+
+```bash
+lofigirl_client -u "https://www.youtube.com/watch?v=XXX"
+```  
