@@ -116,7 +116,7 @@ Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) o
 
 ## Docker
 
-Docker images includes all binaries (without notification support).
+Docker images includes all binaries (without notification support) for amd64, armv7 and arm64.
 
 ```
 docker pull gokberkkocak/lofigirl
@@ -134,6 +134,18 @@ To use with other modules, use ``--entrypoint`` flag.
 
 ```
 docker run -d -v /path/to/your/config.toml:/config.toml --entrypoint {lofigirl_standalone|lofigirl} gokberkkocak/lofigirl:latest 
+```
+
+## Cross-compiling for Armhf and Arm64
+
+Using `Dockerfile.arm64` or `Dockerfile.armhf` you can cross compile the project on `x86_64` for arm devices without qemu emulation.
+
+Example for building and extracting the arm64 binaries.
+
+```bash
+docker build --target builder -t lofi_arm64 -f Dockerfile.arm64 .
+docker create --name dummy_lofi_arm64 localhost/lofi_arm64:latest
+docker cp dummy_lofi_arm64:"/app/bin/*" .
 ```
 
 # How does it Work
