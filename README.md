@@ -45,7 +45,16 @@ vcpkg install llvm opencv4[contrib,nonfree] tesseract
 brew install opencv tesseract leptonica
 ```
 
+## Releases
+
+You can find the latest tagged release in the release section.
+
+Alternatively, you should be able to grab latest artifacts on `main` on github actions artifacts.
+
+
 ## Compiling
+
+Instead of using supplied binaries, you can compile the project yourself as well.
 
 Server side uses ```sqlx``` which does compile time query checking so a db must be present on the compilation time. To set the compile time db and run migrations;
 
