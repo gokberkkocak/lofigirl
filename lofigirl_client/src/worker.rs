@@ -119,48 +119,26 @@ impl Worker {
     }
 
     async fn work_with_connection(&self) -> anyhow::Result<()> {
-        let (tx, mut rx) = tokio::sync::watch::channel(Track::default());
-        // periodic snap image task
         let mut image_proc = ImageProcessor::new(self.url.clone())?;
-        tokio::spawn(async move {
-            let mut current_track: Track = Track::default();
-            loop {
-                let next_track = image_proc.next_track().await;
-                match next_track {
-                    Ok(next_track) => {
-                        if current_track != next_track {
-                            current_track = next_track;
-                            if tx.send(current_track.clone()).is_err() {
-                                warn!("Channel problem");
-                            }
+        let mut current_track: Track = Track::default();
+        loop {
+            match image_proc.next_track().await {
+                Ok(next_track) => {
+                    if current_track != next_track {
+                        if !current_track.is_empty() {
+                            self.send_listen(&current_track).await?;
                         }
-                        tokio::time::sleep(*REGULAR_INTERVAL).await;
+                        self.send_now_playing(&next_track).await?;
+                        current_track = next_track;
                     }
-                    Err(e) => {
-                        warn!("Problem with: {}", e);
-                        tokio::time::sleep(*FAST_TRY_INTERVAL).await;
-                    }
+                    tokio::time::sleep(*REGULAR_INTERVAL).await;
+                }
+                Err(e) => {
+                    warn!("Problem with: {}", e);
+                    tokio::time::sleep(*FAST_TRY_INTERVAL).await;
                 }
             }
-        });
-
-        // listen channel
-        let mut current_track = Track::default();
-        // discard first empty value
-        rx.borrow_and_update();
-        loop {
-            if rx.changed().await.is_err() {
-                break;
-            }
-            let next_track = rx.borrow_and_update().clone();
-            if !current_track.is_empty() {
-                self.send_listen(&current_track).await?;
-            }
-            self.send_now_playing(&next_track).await?;
-            current_track = next_track;
         }
-
-        Ok(())
     }
 }
 
