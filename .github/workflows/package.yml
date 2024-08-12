@@ -16,10 +16,11 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     strategy:
-      platform:
-        linux/amd64
-        linux/arm64
-        linux/arm/v7
+      matrix:
+        platform:
+          linux/amd64
+          linux/arm64
+          linux/arm/v7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
