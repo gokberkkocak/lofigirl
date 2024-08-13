@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Create a release
         id: create_release
-        uses: actions/create-release@v1
+        uses: comnoco/create-release-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -27,9 +27,12 @@ jobs:
           prerelease: true
 
   build_server:
-    name: Create server/standalone release builds and upload binaries for linux
+    name: Create server/standalone release builds for linux
     needs: once
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [{name: "x86_64", suffix: ""}, {name: "arm64", suffix: ".arm64"}, {name: "armhf", suffix: ".armhf"}]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -37,6 +40,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
+        file: Dockerfile{{ matrix.platform.suffix }}
         target: builder
         tags:
           lofigirl:latest
@@ -46,17 +50,17 @@ jobs:
         docker cp $(docker create lofigirl:latest):/app/bin/. ${{ github.workspace }}/bin
     - name: Make Zip(s)
       run: |
-        7z a -tzip ${{ github.workspace }}/bin/lofigirl_client.zip ${{ github.workspace }}/bin/lofigirl_client
-        7z a -tzip ${{ github.workspace }}/bin/lofigirl_client_standalone.zip ${{ github.workspace }}/bin/lofigirl_client_standalone
-        7z a -tzip ${{ github.workspace }}/bin/lofigirl_server.zip ${{ github.workspace }}/bin/lofigirl_server
+        7z a -tzip ${{ github.workspace }}/bin/lofigirl_client_${{ matrix.platform.name }}.zip ${{ github.workspace }}/bin/lofigirl_client
+        7z a -tzip ${{ github.workspace }}/bin/lofigirl_client_standalone_${{ matrix.platform.name }}.zip ${{ github.workspace }}/bin/lofigirl_client_standalone
+        7z a -tzip ${{ github.workspace }}/bin/lofigirl_server_${{ matrix.platform.name }}.zip ${{ github.workspace }}/bin/lofigirl_server
     - name: Upload Release Asset Client
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/bin/lofigirl_client.zip
-        asset_name: lofigirl-client-linux.zip
+        asset_path: ${{ github.workspace }}/bin/lofigirl_client_${{ matrix.platform.name }}.zip
+        asset_name: lofigirl-client-linux-${{ matrix.platform.name }}.zip
         asset_content_type: application/octet-stream
     - name: Upload Release Asset Standalone Client
       uses: actions/upload-release-asset@v1
@@ -64,8 +68,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/bin/lofigirl_client_standalone.zip
-        asset_name: lofigirl-client-standalone-linux.zip
+        asset_path: ${{ github.workspace }}/bin/lofigirl_client_standalone_${{ matrix.platform.name }}.zip
+        asset_name: lofigirl-client-standalone-linux-${{ matrix.platform.name }}.zip
         asset_content_type: application/octet-stream
     - name: Upload Release Asset Server
       uses: actions/upload-release-asset@v1
@@ -73,11 +77,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/bin/lofigirl_server.zip
-        asset_name: lofigirl-server-linux.zip
+        asset_path: ${{ github.workspace }}/bin/lofigirl_server_${{ matrix.platform.name }}.zip
+        asset_name: lofigirl-server-linux-${{ matrix.platform.name }}.zip
         asset_content_type: application/octet-stream
-  build_client:
-    name: Create cross-platform client release build and upload binaries
+  build_client_with_notifications:
+    name: Create client release builds with notification support
     needs: once
     runs-on: ${{ matrix.os }}
     strategy:
@@ -99,10 +103,10 @@ jobs:
       with:
         upload_url: ${{ needs.once.outputs.upload_url }}
         asset_path: ${{ github.workspace }}/target/release/lofigirl-with-notifications-${{ matrix.os }}.zip
-        asset_name: lofigirl-with-notifications-${{ matrix.os }}.zip
+        asset_name: lofigirl-client-with-notifications-${{ matrix.os }}.zip
         asset_content_type: application/octet-stream
   build_wasm_frontend:
-    name: Create single platform wasm
+    name: Create single platform wasm client
     needs: once
     runs-on: ubuntu-latest
     steps:
@@ -127,7 +131,7 @@ jobs:
         asset_name: lofigirl-wasm-web-client.zip
         asset_content_type: application/octet-stream    
   build_flutter_frontend_web:
-    name: Create flutter web
+    name: Create flutter web client
     needs: once
     runs-on: ubuntu-latest
     steps:  
@@ -154,7 +158,7 @@ jobs:
         asset_name: lofigirl-flutter-web-client.zip
         asset_content_type: application/octet-stream  
   build_flutter_frontend_windows:
-    name: Create flutter windows
+    name: Create flutter windows client
     needs: once
     runs-on: windows-latest
     steps:  
@@ -182,7 +186,7 @@ jobs:
         asset_name: lofigirl-flutter-windows-client.zip
         asset_content_type: application/octet-stream  
   build_flutter_frontend_android:
-    name: Create flutter android
+    name: Create flutter android client
     needs: once
     runs-on: ubuntu-latest
     steps:  
@@ -213,7 +217,7 @@ jobs:
         asset_name: lofigirl-flutter-android-client.apk
         asset_content_type: application/octet-stream  
   build_flutter_frontend_linux:
-    name: Create flutter linux
+    name: Create flutter linux client
     needs: once
     runs-on: ubuntu-latest
     steps:  
