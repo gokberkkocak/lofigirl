@@ -14,9 +14,12 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_x64:
+  build_artifacts:
     name: Build for amd64
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [{name: "x86_64", suffix: ""}, {name: "arm64", suffix: ".arm64"}, {name: "armhf", suffix: ".armhf"}]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -24,6 +27,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
+        file: Dockerfile{{ matrix.platform.suffix }}
         target: builder
         tags:
           lofigirl:latest
@@ -34,90 +38,18 @@ jobs:
     - name: Archive production artifact - server
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_server_linux_amd64
+        name: lofigirl_server_linux_{{ matrix.platform.name }}
         path: ${{ github.workspace }}/bin/lofigirl_server
         overwrite: true
     - name: Archive production artifact - client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_linux_amd64
+        name: lofigirl_client_linux_{{ matrix.platform.name }}
         path: ${{ github.workspace }}/bin/lofigirl_client
         overwrite: true
     - name: Archive production artifact - standalone client
       uses: actions/upload-artifact@v4
       with:
-        name: lofigirl_client_standalone_linux_amd64
-        path: ${{ github.workspace }}/bin/lofigirl_client_standalone
-        overwrite: true
-  build_arm64:
-    name: Build for arm64
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Build docker image for one stage
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        target: builder
-        file: Dockerfile.arm64
-        tags:
-          lofigirl:latest
-    - name: Extract binaries from the docker
-      run: |
-        mkdir -p ${{ github.workspace }}/bin
-        docker cp $(docker create lofigirl:latest):/app/bin/. ${{ github.workspace }}/bin
-    - name: Archive production artifact - server
-      uses: actions/upload-artifact@v4
-      with:
-        name: lofigirl_server_linux_arm64
-        path: ${{ github.workspace }}/bin/lofigirl_server
-        overwrite: true
-    - name: Archive production artifact - client
-      uses: actions/upload-artifact@v4
-      with:
-        name: lofigirl_client_linux_arm64
-        path: ${{ github.workspace }}/bin/lofigirl_client
-        overwrite: true
-    - name: Archive production artifact - standalone client
-      uses: actions/upload-artifact@v4
-      with:
-        name: lofigirl_client_standalone_linux_arm64
-        path: ${{ github.workspace }}/bin/lofigirl_client_standalone
-        overwrite: true
-  build_armhf:
-    name: Build for armhf
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Build docker image for one stage
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        target: builder
-        file: Dockerfile.armhf
-        tags:
-          lofigirl:latest
-    - name: Extract binaries from the docker
-      run: |
-        mkdir -p ${{ github.workspace }}/bin
-        docker cp $(docker create lofigirl:latest):/app/bin/. ${{ github.workspace }}/bin
-    - name: Archive production artifact - server
-      uses: actions/upload-artifact@v4
-      with:
-        name: lofigirl_server_linux_armhf
-        path: ${{ github.workspace }}/bin/lofigirl_server
-        overwrite: true
-    - name: Archive production artifact - client
-      uses: actions/upload-artifact@v4
-      with:
-        name: lofigirl_client_linux_armhf
-        path: ${{ github.workspace }}/bin/lofigirl_client
-        overwrite: true
-    - name: Archive production artifact - standalone client
-      uses: actions/upload-artifact@v4
-      with:
-        name: lofigirl_client_standalone_linux_armhf
+        name: lofigirl_client_standalone_linux_{{ matrix.platform.name }}
         path: ${{ github.workspace }}/bin/lofigirl_client_standalone
         overwrite: true
