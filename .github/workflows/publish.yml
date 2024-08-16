@@ -40,7 +40,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        file: Dockerfile{{ matrix.platform.suffix }}
+        file: Dockerfile${{ matrix.platform.suffix }}
         target: builder
         tags:
           lofigirl:latest

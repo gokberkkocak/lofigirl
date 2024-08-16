@@ -10,7 +10,7 @@ edition = "2021"
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 opencv = { version = "0.92", features = ["clang-runtime"] }
 rustube = { version = "0.6", optional = true }
-rusty_ytdl = { git = "https://github.com/Mithronn/rusty_ytdl/", branch = "main"}
+rusty_ytdl = "=0.7.3"
 leptess = "0.14"
 anyhow = "1.0"
 thiserror = "1.0"
