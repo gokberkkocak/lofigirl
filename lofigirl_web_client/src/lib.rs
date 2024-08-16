@@ -1,19 +1,28 @@
 mod storage;
 mod view;
 
+use std::sync::Arc;
+
 use lofigirl_shared_common::{
     api::{Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse},
     config::{LastFMClientPasswordConfig, LastFMClientSessionConfig, ListenBrainzConfig},
     track::Track,
-    CHILL_TRACK_API_END_POINT, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, REGULAR_INTERVAL,
-    SEND_END_POINT, SLEEP_TRACK_API_END_POINT, TOKEN_END_POINT, TRACK_END_POINT,
+    CLIENT_PING_INTERVAL, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, SEND_END_POINT,
+    TOKEN_END_POINT, TRACK_SOCKET_END_POINT,
 };
 
-#[cfg(debug_assertions)]
-use gloo_console::log;
-use gloo_net::http::{Method, Request};
+use gloo_net::{
+    http::{Method, Request},
+    websocket::{futures::WebSocket, Message},
+};
 use seed::{
-    prelude::{cmds, wasm_bindgen, web_sys::HtmlInputElement, Orders},
+    app::CmdHandle,
+    futures::{lock::Mutex, stream::SplitStream, SinkExt, StreamExt as _},
+    prelude::{
+        cmds, wasm_bindgen,
+        web_sys::{HtmlInputElement, Url as WebUrl},
+        Orders,
+    },
     virtual_dom::ElRef,
     App, Url,
 };
@@ -33,8 +42,11 @@ struct Model {
     server_form: ServerForm,
     server_url: Option<String>,
     page: Page,
-    current_track: Option<Track>,
+    current_track: Track,
     is_scrobbling: bool,
+    url: LofiStreamUrlForm,
+    tx_handle: Option<CmdHandle>,
+    rx_handle: Option<CmdHandle>,
 }
 
 // ------ ------
@@ -58,6 +70,9 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
         current_track: Default::default(),
         session_token,
         is_scrobbling: false,
+        url: Default::default(),
+        tx_handle: None,
+        rx_handle: None,
     }
 }
 
@@ -77,6 +92,11 @@ struct ServerForm {
     server: ElRef<HtmlInputElement>,
 }
 
+#[derive(Debug, Default)]
+struct LofiStreamUrlForm {
+    url: ElRef<HtmlInputElement>,
+}
+
 // ------ ------
 //    Update
 // ------ ------
@@ -92,19 +112,15 @@ enum Msg {
     CleanToken,
     CleanListenbrainz,
     CleanServer,
-    StartPlaying(LofiStream),
-    UpdatePlayingStatus(LofiStream, i32),
     LastFMSessionReceived(LastFMClientSessionConfig),
     UrlChanged(Page),
-    SubmitTrack(Track, LofiStream, i32),
     StopPlaying,
     ServerHealthResponded(String),
-    UpdateTokenThenSubmit(String, LofiStream, i32),
-}
-#[derive(Debug, Clone, Copy)]
-enum LofiStream {
-    Chill,
-    Sleep,
+    StartPlaying,
+    UpdateTokenThenPlay(String),
+    ListenSocket(Arc<Mutex<SplitStream<WebSocket>>>),
+    NewTrackReceived(Arc<Mutex<SplitStream<WebSocket>>>, Track),
+    PongReceived,
 }
 
 // `update` describes how to handle each `Msg`.
@@ -140,32 +156,6 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 Msg::ServerHealthResponded(server_url)
             });
         }
-        Msg::UpdatePlayingStatus(stream, count) => {
-            if model.is_scrobbling {
-                let server = model.server_url.clone().unwrap();
-                let token = model.session_token.clone();
-                let l = model
-                    .lastfm_config
-                    .as_ref()
-                    .map(|l| l.session_key.to_owned());
-                let ls = model
-                    .listenbrainz_config
-                    .as_ref()
-                    .map(|l| l.token.to_owned());
-                orders.perform_cmd(async move {
-                    match token {
-                        Some(_) => {
-                            let track = fetch_track(&server, stream).await.unwrap();
-                            Msg::SubmitTrack(track, stream, count)
-                        }
-                        None => {
-                            let token = fetch_session_token(&server, l, ls).await.unwrap();
-                            Msg::UpdateTokenThenSubmit(token.token, stream, count)
-                        }
-                    }
-                });
-            }
-        }
         Msg::UrlChanged(p) => {
             model.page = p;
         }
@@ -181,45 +171,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             model.server_url = None;
             storage::remove_server_url();
         }
-        Msg::SubmitTrack(track, s, mut count) => {
-            // update model track
-            let server = model.server_url.clone().unwrap();
-            let token = model.session_token.clone();
-            let token = token.unwrap();
-            let current_track = model.current_track.take();
-            if let Some(t) = current_track.filter(|t| *t != track) {
-                if count > 3 {
-                    let cloned_token = token.clone();
-                    orders.perform_cmd(async move {
-                        #[cfg(debug_assertions)]
-                        log!("Scrobbled");
-                        post_track_action(&cloned_token, &server, t, Action::Listened)
-                            .await
-                            .unwrap();
-                    });
-                }
-                count = 0;
-            }
-            model.current_track = Some(track.clone());
-            let server = model.server_url.clone().unwrap();
-            #[cfg(debug_assertions)]
-            log!("Count", count);
-            orders.perform_cmd(async move {
-                if count == 1 {
-                    post_track_action(&token, &server, track, Action::PlayingNow)
-                        .await
-                        .unwrap();
-                }
-                cmds::timeout(
-                    REGULAR_INTERVAL.as_millis().try_into().unwrap(),
-                    move || Msg::UpdatePlayingStatus(s, count + 1),
-                )
-                .await
-            });
-        }
         Msg::StopPlaying => {
             model.is_scrobbling = false;
-            model.current_track = None;
+            model.current_track = Default::default();
+            model.tx_handle = None;
+            model.rx_handle = None;
         }
         Msg::LastFMSessionReceived(s) => {
             storage::set_lastfm_config(&s);
@@ -229,19 +185,93 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             storage::set_server_url(&url);
             model.server_url = Some(url);
         }
-        Msg::UpdateTokenThenSubmit(token, stream, count) => {
-            storage::set_session_token(&token);
-            model.session_token = Some(token);
-            orders.perform_cmd(async move { Msg::UpdatePlayingStatus(stream, count) });
-        }
         Msg::CleanToken => {
             model.session_token = None;
             storage::remove_session_token();
         }
-        Msg::StartPlaying(stream) => {
-            model.is_scrobbling = true;
-            orders.perform_cmd(async move { Msg::UpdatePlayingStatus(stream, 1) });
+        Msg::StartPlaying => {
+            // if no session token, set session first
+            if model.session_token.is_none() {
+                let server = model.server_url.clone().unwrap();
+                let l = model
+                    .lastfm_config
+                    .as_ref()
+                    .map(|l| l.session_key.to_owned());
+                let ls = model
+                    .listenbrainz_config
+                    .as_ref()
+                    .map(|l| l.token.to_owned());
+                orders.perform_cmd(async move {
+                    let token = fetch_session_token(&server, l, ls).await.unwrap();
+                    Msg::UpdateTokenThenPlay(token.token)
+                });
+            } else {
+                model.is_scrobbling = true;
+                let stream = model.url.url.get().unwrap().value();
+                let server_url = WebUrl::new(&model.server_url.clone().unwrap()).unwrap();
+                // if https > wss else ws
+                let protocol = if server_url.protocol() == "https:" {
+                    "wss"
+                } else {
+                    "ws"
+                };
+                let socket_url = format!(
+                    "{}://{}{}",
+                    protocol,
+                    server_url.host(),
+                    TRACK_SOCKET_END_POINT
+                );
+                let socket = WebSocket::open(&socket_url).unwrap();
+                let (mut tx, rx) = socket.split();
+                // send initial message and start pinging
+                let tx_handle = orders.perform_cmd_with_handle(async move {
+                    tx.send(Message::Text(stream)).await.unwrap();
+                    loop {
+                        cmds::timeout(CLIENT_PING_INTERVAL.as_millis().try_into().unwrap(), || {})
+                            .await;
+                        tx.send(Message::Bytes(vec![])).await.unwrap();
+                    }
+                });
+                model.tx_handle = Some(tx_handle);
+                orders.send_msg(Msg::ListenSocket(Arc::new(Mutex::new(rx))));
+            }
         }
+        Msg::ListenSocket(rx) => {
+            let rx_handle = orders.perform_cmd_with_handle(async move {
+                let message = rx.lock().await.next().await.unwrap().unwrap();
+                match message {
+                    Message::Text(track_str) => {
+                        let next_track: Track = serde_json_wasm::from_str(&track_str).unwrap();
+                        Msg::NewTrackReceived(rx, next_track)
+                    }
+                    Message::Bytes(_bytes) => Msg::PongReceived,
+                }
+            });
+            model.rx_handle = Some(rx_handle);
+        }
+        Msg::NewTrackReceived(rx, next_track) => {
+            let current_track = model.current_track.clone();
+            model.current_track = next_track.clone();
+            let token = model.session_token.clone().unwrap();
+            let server = model.server_url.clone().unwrap();
+            orders.perform_cmd(async move {
+                if !current_track.is_empty() {
+                    post_track_action(&token, &server, current_track, Action::Listened)
+                        .await
+                        .unwrap();
+                }
+                post_track_action(&token, &server, next_track, Action::PlayingNow)
+                    .await
+                    .unwrap();
+                Msg::ListenSocket(rx)
+            });
+        }
+        Msg::UpdateTokenThenPlay(token) => {
+            model.session_token = Some(token.clone());
+            storage::set_session_token(&token);
+            orders.send_msg(Msg::StartPlaying);
+        }
+        Msg::PongReceived => {}
     }
 }
 
@@ -294,25 +324,6 @@ async fn post_track_action(
         .send()
         .await?;
     Ok(())
-}
-
-async fn fetch_track(server: &str, stream: LofiStream) -> anyhow::Result<Track> {
-    let url = format!(
-        "{}{}{}",
-        server,
-        TRACK_END_POINT,
-        match stream {
-            LofiStream::Chill => CHILL_TRACK_API_END_POINT,
-            LofiStream::Sleep => SLEEP_TRACK_API_END_POINT,
-        }
-    );
-    let track = Request::get(&url)
-        .method(Method::GET)
-        .send()
-        .await?
-        .json()
-        .await?;
-    Ok(track)
 }
 
 async fn check_server_health(server: &str) -> anyhow::Result<()> {

@@ -1,7 +1,7 @@
 use seed::prelude::*;
 use seed::*;
 
-use crate::{LofiStream, Model, Msg, Page};
+use crate::{Model, Msg, Page};
 
 // ------ ------
 //     View
@@ -17,13 +17,13 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
     let body = match model.page {
         Page::Root => match &model.is_scrobbling {
             true => {
-                if let Some(track) = &model.current_track {
+                if !&model.current_track.is_empty() {
                     div![
                         div![button![
                             "STOP scrobbling",
                             ev(Ev::Click, |_| Msg::StopPlaying),
                         ]],
-                        div![format!("Current song: {}", track)]
+                        div![format!("Current song: {}", &model.current_track)]
                     ]
                 } else {
                     div!["Waiting for the song..."]
@@ -31,13 +31,16 @@ pub(crate) fn view(model: &Model) -> Vec<Node<Msg>> {
             }
             false => {
                 div![
-                    div![button![
-                        "Start scrobbling - CHILL",
-                        ev(Ev::Click, |_| Msg::StartPlaying(LofiStream::Chill)),
+                    div![input![
+                        el_ref(&model.url.url),
+                        attrs! {
+                            At::Type => "text",
+                            At::Placeholder => "Youtube URL",
+                        },
                     ]],
                     div![button![
-                        "Start scrobbling - SLEEP",
-                        ev(Ev::Click, |_| Msg::StartPlaying(LofiStream::Sleep)),
+                        "Start scrobbling",
+                        ev(Ev::Click, |_| Msg::StartPlaying),
                     ]]
                 ]
             }

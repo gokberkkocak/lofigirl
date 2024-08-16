@@ -23,7 +23,7 @@ use {
     lofigirl_shared_common::LASTFM_SESSION_END_POINT,
     lofigirl_shared_common::SEND_END_POINT,
     lofigirl_shared_common::TOKEN_END_POINT,
-    lofigirl_shared_common::{REGULAR_INTERVAL, TRACK_SOCKET_END_POINT},
+    lofigirl_shared_common::{CLIENT_PING_INTERVAL, TRACK_SOCKET_END_POINT},
     reqwest::Client,
     reqwest_websocket::{Message, RequestBuilderExt},
     tracing::info,
@@ -310,7 +310,7 @@ impl Worker {
                 if tx.send(Message::Ping(vec![])).await.is_err() {
                     break;
                 }
-                tokio::time::sleep(*REGULAR_INTERVAL).await;
+                tokio::time::sleep(*CLIENT_PING_INTERVAL).await;
             }
         });
 
