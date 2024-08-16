@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use actix_web::cookie::time::Duration;
 use actix_web::http::StatusCode;
 
 use actix_web::{web, HttpRequest, Responder};
@@ -13,7 +12,7 @@ use lofigirl_shared_common::api::{
 };
 use lofigirl_shared_common::config::LastFMClientConfig;
 use lofigirl_shared_common::track::Track;
-use lofigirl_shared_common::REGULAR_INTERVAL;
+use lofigirl_shared_common::{REGULAR_INTERVAL, SERVER_PING_TIMEOUT_INTERVAL};
 use lofigirl_shared_listen::listener::Listener;
 use parking_lot::RwLock;
 use serde::Serialize;
@@ -203,7 +202,7 @@ pub(crate) async fn track_socket(
                         let session_clone = session.clone();
                         actix_rt::spawn(async move {
                             loop {
-                                if last_ping.read().elapsed() > Duration::seconds(60) {
+                                if last_ping.read().elapsed() > *SERVER_PING_TIMEOUT_INTERVAL {
                                     break;
                                 }
                                 tokio::time::sleep(*REGULAR_INTERVAL).await;
@@ -217,7 +216,8 @@ pub(crate) async fn track_socket(
                         break;
                     }
                 },
-                Message::Ping(bytes) => {
+                Message::Ping(bytes) | Message::Binary(bytes) => {
+                    info!("Server received ping from socket");
                     // client ping updates last ping and also last requested for server worker
                     *last_ping.write() = Instant::now();
                     session.pong(&bytes).await.unwrap();

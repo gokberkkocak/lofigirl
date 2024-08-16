@@ -8,6 +8,9 @@ pub static REGULAR_INTERVAL: LazyLock<Duration> = LazyLock::new(|| Duration::fro
 pub static FAST_TRY_INTERVAL: LazyLock<Duration> = LazyLock::new(|| Duration::from_secs(5));
 pub static STREAM_LAST_READ_TIMEOUT: LazyLock<Duration> =
     LazyLock::new(|| Duration::from_secs(300));
+pub static CLIENT_PING_INTERVAL: LazyLock<Duration> = LazyLock::new(|| Duration::from_secs(30));
+pub static SERVER_PING_TIMEOUT_INTERVAL: LazyLock<Duration> =
+    LazyLock::new(|| Duration::from_secs(60));
 pub const SEND_END_POINT: &str = "/send";
 pub const TRACK_END_POINT: &str = "/track";
 pub const TRACK_SOCKET_END_POINT: &str = "/track_ws";

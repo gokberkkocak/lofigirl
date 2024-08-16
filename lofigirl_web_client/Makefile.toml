@@ -33,8 +33,8 @@ args = ["build", "--target", "web", "--out-name", "package", "--dev"]
 
 [tasks.build_release]
 description = "Build with wasm-pack in release mode"
-install_crate = { crate_name = "wasm-pack", binary = "wasm-pack", test_arg = "-V" }
-command = "wasm-pack"
+# install_crate = { crate_name = "wasm-pack", binary = "wasm-pack", test_arg = "-V" }
+command = "/home/gk/.cargo/bin/wasm-pack"
 args = ["build", "--target", "web", "--out-name", "package"]
 
 # ---- LINT ----

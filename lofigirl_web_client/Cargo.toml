@@ -15,9 +15,10 @@ wasm-bindgen-test = "0.3"
 [dependencies]
 anyhow = "1.0"
 gloo-console = "0.3"
-gloo-net = "0.5"
+gloo-net = "0.6"
 gloo-storage = "0.3"
 seed = "0.10"
+serde-json-wasm = "1.0"
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 
 [package.metadata.wasm-pack.profile.release]
