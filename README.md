@@ -125,7 +125,7 @@ Check [server](lofigirl_server/README.md), [client](lofigirl_client/README.md) o
 
 ## Docker
 
-Docker images includes all binaries (without notification support) for amd64, armv7 and arm64.
+Docker images includes all binaries (without notification support) for amd64 architecture. 
 
 ```
 docker pull gokberkkocak/lofigirl
@@ -144,6 +144,8 @@ To use with other modules, use ``--entrypoint`` flag.
 ```
 docker run -d -v /path/to/your/config.toml:/config.toml --entrypoint {lofigirl_standalone|lofigirl} gokberkkocak/lofigirl:latest 
 ```
+
+The dockerhub and github packages do not include images for arm architectures because building these images with qemu take many hours that github actions cannot handle it without timing out. You can check the cross compilation docker images for extracting arm binaries instead.
 
 ## Cross-compiling for Armhf and Arm64
 

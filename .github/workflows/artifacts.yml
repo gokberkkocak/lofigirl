@@ -15,7 +15,7 @@ env:
 
 jobs:
   build_artifacts:
-    name: Build for amd64
+    name: Build artifacts
     runs-on: ubuntu-latest
     strategy:
       matrix:
