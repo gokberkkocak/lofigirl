@@ -1,15 +1,16 @@
 mod config;
 mod session;
+mod util;
 mod webserver;
 mod worker;
 
 use std::path::PathBuf;
 
+use actix_web::web;
 use clap::Parser;
 
 use crate::config::ServerConfig;
-use webserver::LofiServer;
-use worker::InitServerWorker;
+use webserver::{AppState, LofiServer};
 
 const APP_NAME: &str = "lofigirl_server";
 
@@ -28,15 +29,10 @@ async fn main() -> std::io::Result<()> {
     let opt = Opt::parse();
     let config = ServerConfig::from_toml(&opt.config)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-    let mut worker = InitServerWorker::new(&config)
-        .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-    let state = worker.state.clone();
-    actix_rt::spawn(async move {
-        worker
-            .work()
+    let state = web::Data::new(
+        AppState::new(config.lastfm_api, &config.server_settings.token_db)
             .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
-    });
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?,
+    );
     LofiServer::start(state, config.server_settings.port).await
 }

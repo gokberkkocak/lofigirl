@@ -35,13 +35,6 @@ cargo build --release -p lofigirl_server
 ## Example Config
 
 ```toml
-[video] # soon to be deprecated in favour of dynamic track endpoint
-links = [
-    "https::///www.youtube.com/something",
-    "https::///www.youtube.com/something", # optional
-    "https::///www.youtube.com/something", # optional
-]
-
 [server_settings]
 token_db = "token.db"
 port = 8888 

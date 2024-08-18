@@ -1,7 +1,7 @@
 mod storage;
 mod view;
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use lofigirl_shared_common::{
     api::{Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse},
@@ -118,8 +118,8 @@ enum Msg {
     ServerHealthResponded(String),
     StartPlaying,
     UpdateTokenThenPlay(String),
-    ListenSocket(Arc<Mutex<SplitStream<WebSocket>>>),
-    NewTrackReceived(Arc<Mutex<SplitStream<WebSocket>>>, Track),
+    ListenSocket(Rc<Mutex<SplitStream<WebSocket>>>),
+    NewTrackReceived(Rc<Mutex<SplitStream<WebSocket>>>, Track),
     PongReceived,
 }
 
@@ -233,7 +233,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     }
                 });
                 model.tx_handle = Some(tx_handle);
-                orders.send_msg(Msg::ListenSocket(Arc::new(Mutex::new(rx))));
+                orders.send_msg(Msg::ListenSocket(Rc::new(Mutex::new(rx))));
             }
         }
         Msg::ListenSocket(rx) => {

@@ -100,14 +100,6 @@ api_secret = "api_secret"
 [listenbrainz] # client optional - server ignore
 token = "token"
 
-# video links on server soon to be deprecated in favour of dynamic track endpoint
-[video] # standalone client and server use, others ignore 
-links = [
-    "https::///www.youtube.com/something",
-    "https::///www.youtube.com/something", # optional
-    "https::///www.youtube.com/something", # optional
-]
-
 [server] # client only mandatory, others would ignore.
 link = "http://127.0.0.1:8080"
 

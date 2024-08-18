@@ -30,8 +30,6 @@ class TokenRequest {
       };
 }
 
-enum LofiStream { chill, sleep }
-
 class Track {
   final String artist;
   final String song;

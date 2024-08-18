@@ -36,10 +36,6 @@ pub struct LastFMApiConfig {
 pub struct ListenBrainzConfig {
     pub token: String,
 }
-#[derive(Debug, Deserialize, Serialize)]
-pub struct VideoConfig {
-    pub links: Vec<String>,
-}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ServerConfig {
@@ -56,8 +52,6 @@ pub struct ServerSettingsConfig {
 pub enum ConfigError {
     #[error("Neither LastFM nor Listenbrainz config is given.")]
     EmptyListeners,
-    #[error("Video config not found.")]
-    EmptyVideoConfig,
     #[error("Server config not found.")]
     EmptyServerConfig,
 }
