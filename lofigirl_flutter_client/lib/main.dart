@@ -358,10 +358,6 @@ class _LofiGirlState extends State<LofiGirl> {
                         padding: const EdgeInsets.all(8),
                         children: (_sessionToken != null)
                             ? [
-                                const Center(
-                                    child: Text(
-                                        "Which steam are you listening right now?",
-                                        style: TextStyle(fontSize: 20))),
                                 TextField(
                                     decoration: const InputDecoration(
                                       labelText: 'LofiStream URL',
@@ -375,12 +371,15 @@ class _LofiGirlState extends State<LofiGirl> {
                                     child: ElevatedButton.icon(
                                       label: const Text('Start scrobbling!'),
                                       icon: const Icon(Icons.play_arrow),
-                                      onPressed: () {
-                                        setState(() {
-                                          _isScrobbling = true;
-                                          _scrobble();
-                                        });
-                                      },
+                                      onPressed: (_streamUrl != null &&
+                                              _streamUrl!.isNotEmpty)
+                                          ? () {
+                                              setState(() {
+                                                _isScrobbling = true;
+                                                _scrobble();
+                                              });
+                                            }
+                                          : null,
                                     ))
                               ]
                             : [
