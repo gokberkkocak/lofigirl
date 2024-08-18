@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:lofigirl_flutter_client/config.dart';
 import 'package:lofigirl_flutter_client/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'dart:developer' as developer;
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
   runApp(const LofiGirlWithScaffold());
@@ -30,7 +31,7 @@ class LofiGirlWithScaffold extends StatelessWidget {
 }
 
 class LofiGirl extends StatefulWidget {
-  const LofiGirl({Key? key}) : super(key: key);
+  const LofiGirl({super.key});
 
   @override
   State<LofiGirl> createState() => _LofiGirlState();
@@ -44,26 +45,22 @@ class _LofiGirlState extends State<LofiGirl> {
   bool _isScrobbling = false;
   Track? _currentTrack;
   String? _lastFmUsername;
-  LofiStream? _lofiStreamName;
-  int _seenCount = 0;
-  Timer? _timer;
+  String? _streamUrl;
+  WebSocketChannel? _channel;
+  StreamSubscription? _socketStreamHandle;
+  Timer? _pingTimerHandle;
 
   @override
   void initState() {
-    _timer = Timer.periodic(const Duration(seconds: 15), (timer) {
-      if (_isScrobbling) {
-        _scrobble();
-      }
-    });
     super.initState();
     _loadValues();
   }
 
   // Before removing the widget, we need to stop the timer.
-  // Timer is guaranteed to be not null since initState() sets it.
   @override
   void dispose() {
-    _timer!.cancel();
+    _pingTimerHandle?.cancel();
+    _socketStreamHandle?.cancel();
     super.dispose();
   }
 
@@ -75,53 +72,54 @@ class _LofiGirlState extends State<LofiGirl> {
       _sessionToken = prefs.getString('sessionToken');
       _serverUrl = prefs.getString('serverUrl');
       _lastFmUsername = prefs.getString('lastFmUsername');
+      _streamUrl = prefs.getString("streamUrl");
     });
   }
 
   void _scrobble() async {
-    var nextTrack = await _getTrack();
-    if (nextTrack == null) {
-      return;
-    }
-
-    if (_currentTrack != null &&
-        _currentTrack!.artist == nextTrack.artist &&
-        _currentTrack!.song == nextTrack.song) {
-      _seenCount += 1;
+    // socket url parsing
+    var socketUrl = Uri.parse('$_serverUrl/track_ws');
+    if (socketUrl.scheme == "https") {
+      socketUrl = socketUrl.replace(scheme: "wss");
+    } else if (socketUrl.scheme == "http") {
+      socketUrl = socketUrl.replace(scheme: "ws");
     } else {
-      _seenCount = 0;
+      const snackBar = SnackBar(
+        content: Text('Server url can only be http/https!'),
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
     }
-
-    setState(() {
-      _currentTrack = nextTrack;
+    // establish socket
+    _channel = WebSocketChannel.connect(
+      socketUrl,
+    );
+    // send initial messageu
+    _channel?.sink.add('$_streamUrl');
+    // set periodic ping
+    _pingTimerHandle = Timer.periodic(const Duration(seconds: 30), (timer) {
+      developer.log('Pinging socket with binary data');
+      _channel?.sink.add(utf8.encode("ping"));
     });
-
-    developer.log("$_seenCount", name: 'seenCount');
-
-    if (_seenCount == 3) {
-      _sendInfo("Listened");
-    }
-    if (_seenCount == 0) {
-      _sendInfo("PlayingNow");
-    }
-  }
-
-  Future<Track?> _getTrack() async {
-    var endPoint = (_lofiStreamName == LofiStream.chill) ? "chill" : "sleep";
-    final url = Uri.parse('$_serverUrl/track/$endPoint');
-    developer.log('GET $url', name: 'LofiGirl');
-    if (url.isAbsolute) {
-      var track = await http.get(url).then((http.Response response) async {
-        if (response.statusCode == 200) {
-          var track = Track.fromJson(json.decode(response.body));
-          return track;
-        } else {
-          developer.log('Error getting track', name: 'LofiGirl');
+    _socketStreamHandle = _channel?.stream.listen(
+      (dynamic message) {
+        final nextTrack = Track.fromJson(json.decode(message));
+        if (_currentTrack != null) {
+          _sendInfo("Listened");
         }
-      });
-      return track;
-    }
-    return null;
+        setState(() {
+          _currentTrack = nextTrack;
+        });
+        _sendInfo("PlayingNow");
+      },
+      onDone: () {
+        developer.log('ws channel closed');
+      },
+      onError: (error) {
+        developer.log('ws error $error');
+      },
+    );
   }
 
   void _sendInfo(String info) {
@@ -159,20 +157,26 @@ class _LofiGirlState extends State<LofiGirl> {
             const snackBar = SnackBar(
               content: Text('Server is set!'),
             );
-            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            }
           });
         } else {
           const snackBar = SnackBar(
             content: Text('Server did not respond correctly!'),
           );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          }
         }
       });
     } else {
       const snackBar = SnackBar(
         content: Text('Server url is not valid!'),
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
     }
   }
 
@@ -185,7 +189,9 @@ class _LofiGirlState extends State<LofiGirl> {
     const snackBar = SnackBar(
       content: Text('ListenBrainz token is set!'),
     );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
   }
 
   void onLastFmUsernameChanged(String value) async {
@@ -197,7 +203,24 @@ class _LofiGirlState extends State<LofiGirl> {
     const snackBar = SnackBar(
       content: Text('Last.fm username is set!'),
     );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+  }
+
+  void onStreamUrlChanged(String value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _streamUrl = value;
+      prefs.setString("streamUrl", value);
+    });
+    const snackBar = SnackBar(
+      content: Text('Stream url is set!'),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+    // maybe websocket init?
   }
 
   void onLastFmPasswordChanged(String value) async {
@@ -226,7 +249,9 @@ class _LofiGirlState extends State<LofiGirl> {
           const snackBar = SnackBar(
             content: Text('Last.fm session key is set!'),
           );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          }
         }
       }
     }
@@ -241,7 +266,9 @@ class _LofiGirlState extends State<LofiGirl> {
     var snackBar = const SnackBar(
       content: Text('Last.fm session key is deleted!'),
     );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
   }
 
   Future<bool> onSessionTokenRequested() async {
@@ -268,8 +295,9 @@ class _LofiGirlState extends State<LofiGirl> {
           const snackBar = SnackBar(
             content: Text('Session token is set!'),
           );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          // developer.log("$_sessionToken", name: 'Session token');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          }
           return true;
         }
       }
@@ -316,6 +344,11 @@ class _LofiGirlState extends State<LofiGirl> {
                                   setState(() {
                                     _isScrobbling = false;
                                     _currentTrack = null;
+                                    _socketStreamHandle?.cancel();
+                                    _socketStreamHandle = null;
+                                    _pingTimerHandle?.cancel();
+                                    _pingTimerHandle = null;
+                                    _channel = null;
                                   });
                                 },
                               ))
@@ -325,47 +358,35 @@ class _LofiGirlState extends State<LofiGirl> {
                         padding: const EdgeInsets.all(8),
                         children: (_sessionToken != null)
                             ? [
-                                const Center(
-                                    child: Text(
-                                        "Which steam are you listening right now?",
-                                        style: TextStyle(fontSize: 20))),
-                                RadioListTile(
-                                  title: const Text('Chill Stream'),
-                                  value: LofiStream.chill,
-                                  groupValue: _lofiStreamName,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _lofiStreamName = LofiStream.chill;
-                                    });
-                                  },
-                                ),
-                                RadioListTile(
-                                  title: const Text('Sleep Stream'),
-                                  value: LofiStream.sleep,
-                                  groupValue: _lofiStreamName,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _lofiStreamName = LofiStream.sleep;
-                                    });
-                                  },
-                                ),
+                                TextField(
+                                    decoration: const InputDecoration(
+                                      labelText: 'LofiStream URL',
+                                    ),
+                                    onSubmitted: onStreamUrlChanged,
+                                    readOnly: (_isScrobbling),
+                                    controller: TextEditingController(
+                                        text: _streamUrl)),
                                 Padding(
                                     padding: const EdgeInsets.only(top: 10),
                                     child: ElevatedButton.icon(
                                       label: const Text('Start scrobbling!'),
                                       icon: const Icon(Icons.play_arrow),
-                                      onPressed: () {
-                                        setState(() {
-                                          _isScrobbling = true;
-                                        });
-                                      },
+                                      onPressed: (_streamUrl != null &&
+                                              _streamUrl!.isNotEmpty)
+                                          ? () {
+                                              setState(() {
+                                                _isScrobbling = true;
+                                                _scrobble();
+                                              });
+                                            }
+                                          : null,
                                     ))
                               ]
                             : [
                                 const Center(
                                     child: Text("Let's get started!",
                                         style: TextStyle(fontSize: 20))),
-                                SetSettingsButton()
+                                const SetSettingsButton()
                               ])),
             Scaffold(
                 body: ListView(padding: const EdgeInsets.all(8), children: [
@@ -395,6 +416,8 @@ class _LofiGirlState extends State<LofiGirl> {
 }
 
 class SetSettingsButton extends StatelessWidget {
+  const SetSettingsButton({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -403,14 +426,14 @@ class SetSettingsButton extends StatelessWidget {
             icon: const Icon(Icons.settings),
             label: const Text('Get connected!'),
             onPressed: () {
-              DefaultTabController.of(context)!.animateTo(1);
+              DefaultTabController.of(context).animateTo(1);
             }));
   }
 }
 
 class ListeningInfo extends StatelessWidget {
   final Track? track;
-  const ListeningInfo(this.track);
+  const ListeningInfo(this.track, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -430,8 +453,8 @@ class ListeningInfo extends StatelessWidget {
               ))
             ],
           )
-        : Column(
-            children: const [
+        : const Column(
+            children: [
               Center(
                   child: Text(
                 "Getting song info...",

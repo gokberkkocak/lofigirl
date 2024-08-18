@@ -6,7 +6,8 @@ class ServerSettings extends StatelessWidget {
   final String? sessionToken;
   final Function(String) onServerUrlChanged;
   const ServerSettings(
-      this.serverUrl, this.sessionToken, this.onServerUrlChanged);
+      this.serverUrl, this.sessionToken, this.onServerUrlChanged,
+      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,8 @@ class ListenBrainzSettings extends StatelessWidget {
   final String? sessionToken;
   final Function(String) onListenBrainzTokenChanged;
   const ListenBrainzSettings(this.listenBrainzToken, this.sessionToken,
-      this.onListenBrainzTokenChanged);
+      this.onListenBrainzTokenChanged,
+      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +60,8 @@ class LastFmSettings extends StatelessWidget {
       this.sessionToken,
       this.onLastFMUsernameChanged,
       this.onLastFMPasswordChanged,
-      this.onLastFMSessionKeyDeleted);
+      this.onLastFMSessionKeyDeleted,
+      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +121,8 @@ class LofiGirlToken extends StatelessWidget {
   final bool isActive;
 
   const LofiGirlToken(this.sessionToken, this.onSessionTokenRequest,
-      this.onSessionTokenDeleted, this.isActive);
+      this.onSessionTokenDeleted, this.isActive,
+      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +160,7 @@ class LofiGirlToken extends StatelessWidget {
 class ConnectButton extends StatelessWidget {
   final Future<bool> Function() onSessionTokenRequest;
 
-  const ConnectButton(this.onSessionTokenRequest);
+  const ConnectButton(this.onSessionTokenRequest, {super.key});
 
   @override
   Widget build(BuildContext context) {

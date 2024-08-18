@@ -23,26 +23,34 @@ flutter build <platform>
 
 Sharing ideas from the rust wasm web client, flutter client has two page views: main and settings.
 
-- Initial home page:
+### Initial home page:
 
 ![home](images/before_login.png)
 
-- Initial settings page:
+### Initial settings page:
 
 ![settings](images/empty_settings.png)
 
-- Filling the settings:
+### Filling the settings:
 
 ![home](images/filled_settings.png)
 
-- After connected to the server:
+### After connected to the server:
 
-![home](images/ready.png)
+![home](images/ready_1.png)
 
-- Scrobbling to LastFM and ListenBrainz:
+### After filling the lofi stream url:
+
+![home](images/ready_2.png)
+
+### Scrobbling to LastFM and ListenBrainz:
 
 ![example scrobble](images/example_song.png)
 
+- Song on lastfm
+
 ![example scrobble to lastfm](images/example_song_lastfm.png)
+
+- Song on listenbrainz
 
 ![example scrobble to listenbrainz](images/example_song_listenbrainz.png)

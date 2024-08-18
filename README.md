@@ -17,9 +17,9 @@ This project includes different modules and several features which you can choos
 - Server / Client:
     - Server - A REST / Websocket API broadcasting server module which does the image processing, ocr and serves it on a selected port. Requires all the dependencies to be present in the system. It can keep user sessions and also sends listening information to `lastfm` and `listenbrainz`.
     - Client - There are multiple thin clients that can communicate with the server:
-        - CLI - It uses the given server configuration to communicate with the ```server``` module using the REST / Websocket API.
-        - Lofigirl Web Client - Compiled to wasm, runs on browser and communicates with the ```server``` module using the REST API.
-        - Lofigirl Flutter Client - Flutter multi platform front-end that communicates with the ```server``` module using the REST API.
+        - CLI - TUI client that uses the given server configuration to communicate with the ```server``` module using the REST / Websocket API.
+        - Lofigirl Web Client - Designed with [TAE](https://guide.elm-lang.org/architecture/), it compiles to wasm, runs on browser and communicates with the ```server``` module using the REST / Websocket API.
+        - Lofigirl Flutter Client - Flutter multi platform front-end that communicates with the ```server``` module using the REST / Websocket API.
 
 ## Installing all dependencies
 
@@ -100,7 +100,8 @@ api_secret = "api_secret"
 [listenbrainz] # client optional - server ignore
 token = "token"
 
-[video] # standalone client and server use, others ignore
+# video links on server soon to be deprecated in favour of dynamic track endpoint
+[video] # standalone client and server use, others ignore 
 links = [
     "https::///www.youtube.com/something",
     "https::///www.youtube.com/something", # optional
