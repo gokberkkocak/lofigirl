@@ -165,7 +165,7 @@ class _LofiGirlState extends State<LofiGirl> {
           const snackBar = SnackBar(
             content: Text('Server did not respond correctly!'),
           );
-          if (context.mounted) {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(snackBar);
           }
         }
@@ -174,7 +174,7 @@ class _LofiGirlState extends State<LofiGirl> {
       const snackBar = SnackBar(
         content: Text('Server url is not valid!'),
       );
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     }
@@ -189,7 +189,7 @@ class _LofiGirlState extends State<LofiGirl> {
     const snackBar = SnackBar(
       content: Text('ListenBrainz token is set!'),
     );
-    if (context.mounted) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
@@ -203,7 +203,7 @@ class _LofiGirlState extends State<LofiGirl> {
     const snackBar = SnackBar(
       content: Text('Last.fm username is set!'),
     );
-    if (context.mounted) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
@@ -217,7 +217,7 @@ class _LofiGirlState extends State<LofiGirl> {
     const snackBar = SnackBar(
       content: Text('Stream url is set!'),
     );
-    if (context.mounted) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
     // maybe websocket init?
@@ -249,7 +249,7 @@ class _LofiGirlState extends State<LofiGirl> {
           const snackBar = SnackBar(
             content: Text('Last.fm session key is set!'),
           );
-          if (context.mounted) {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(snackBar);
           }
         }
@@ -266,7 +266,7 @@ class _LofiGirlState extends State<LofiGirl> {
     var snackBar = const SnackBar(
       content: Text('Last.fm session key is deleted!'),
     );
-    if (context.mounted) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
@@ -295,7 +295,7 @@ class _LofiGirlState extends State<LofiGirl> {
           const snackBar = SnackBar(
             content: Text('Session token is set!'),
           );
-          if (context.mounted) {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(snackBar);
           }
           return true;
