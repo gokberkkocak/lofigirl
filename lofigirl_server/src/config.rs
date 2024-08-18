@@ -1,13 +1,12 @@
 use std::path::Path;
 
 use anyhow::Result;
-use lofigirl_shared_common::config::{LastFMApiConfig, ServerSettingsConfig, VideoConfig};
+use lofigirl_shared_common::config::{LastFMApiConfig, ServerSettingsConfig};
 use serde::Deserialize;
 use tracing::info;
 
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
-    pub video: Option<VideoConfig>,
     pub lastfm_api: Option<LastFMApiConfig>,
     pub server_settings: ServerSettingsConfig,
 }

@@ -3,7 +3,6 @@ use std::path::Path;
 use anyhow::Result;
 use lofigirl_shared_common::config::{
     ConfigError, LastFMApiConfig, LastFMClientConfig, ListenBrainzConfig, ServerConfig,
-    ServerSettingsConfig,
 };
 use serde::{Deserialize, Serialize};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
@@ -16,8 +15,6 @@ pub struct Config {
     pub listenbrainz: Option<ListenBrainzConfig>,
     pub session: Option<TokenConfig>,
     pub server: Option<ServerConfig>,
-    #[allow(dead_code)]
-    pub server_settings: Option<ServerSettingsConfig>,
 }
 
 impl Config {

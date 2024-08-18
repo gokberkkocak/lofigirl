@@ -20,27 +20,9 @@ use thiserror::Error;
 use tracing::{info, warn};
 use url::Url;
 
+use crate::util::YoutubeIdExtractor;
+
 use super::AppState;
-
-pub(crate) async fn get_track_with_index(
-    data: web::Data<AppState>,
-    idx: usize,
-) -> Result<HttpResponse> {
-    let lock = data.seq_tracks.read();
-    if let Some(track) = lock.get(idx) {
-        Ok(HttpResponse::Ok().json(track))
-    } else {
-        Ok(HttpResponse::NotFound().json(ServerResponseError::TrackNotAvailable))
-    }
-}
-
-pub(crate) async fn get_main(data: web::Data<AppState>) -> Result<HttpResponse> {
-    get_track_with_index(data, 0).await
-}
-
-pub(crate) async fn get_second(data: web::Data<AppState>) -> Result<HttpResponse> {
-    get_track_with_index(data, 1).await
-}
 
 pub(crate) async fn send(
     data: web::Data<AppState>,
@@ -91,15 +73,21 @@ pub(crate) async fn dynamic_track(
     let youtube_url_string = url.into_inner();
     let youtube_url = Url::parse(&youtube_url_string)
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    let youtube_id = youtube_url
+        .get_video_id()
+        .ok_or(actix_web::error::InternalError::new(
+            ServerResponseError::InvalidYoutubeLink,
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))?;
     // modify the last requested time
     // even with explicit drop, clippy still complains about it so wrap it in a block
     {
         let mut last_requested = data.last_requested.write();
-        last_requested.insert(youtube_url.clone(), Instant::now());
+        last_requested.insert(youtube_id.clone(), Instant::now());
     }
 
     // Check if there is a working image processor
-    if let Some(track) = data.tracks.read().get(&youtube_url) {
+    if let Some(track) = data.tracks.read().get(&youtube_id) {
         // return track
         return Ok(HttpResponse::Ok().json(track));
     }
@@ -131,88 +119,102 @@ pub(crate) async fn track_socket(
                         info!("Server received {youtube_url} from socket");
                         // Update last requested state
                         let state = data.clone();
-                        let youtube_url_clone = youtube_url.clone();
-                        actix_rt::spawn(async move {
-                            // periodic update
-                            loop {
-                                {
-                                    let mut last_requested = state.last_requested.write();
-                                    last_requested
-                                        .insert(youtube_url_clone.clone(), Instant::now());
-                                }
-                                tokio::time::sleep(*REGULAR_INTERVAL).await;
+                        let youtube_id = youtube_url.get_video_id();
+                        match youtube_id {
+                            Some(youtube_id) => {
+                                let youtube_id_clone = youtube_id.clone();
+                                actix_rt::spawn(async move {
+                                    // periodic update
+                                    loop {
+                                        {
+                                            let mut last_requested = state.last_requested.write();
+                                            last_requested
+                                                .insert(youtube_id_clone.clone(), Instant::now());
+                                        }
+                                        tokio::time::sleep(*REGULAR_INTERVAL).await;
+                                    }
+                                });
+                                // Check if there is a worker already find its rx channel otherwise create worker and bring its rx channel
+                                let state = data.clone();
+                                let should_reuse =
+                                    data.track_channels.read().contains_key(&youtube_id);
+                                let mut rx = if should_reuse {
+                                    info!("Found existing worker for given video, reuse worker");
+                                    if let Some(rx) = data.track_channels.read().get(&youtube_id) {
+                                        rx.clone()
+                                    } else {
+                                        warn!("reuse failure");
+                                        break;
+                                    }
+                                } else {
+                                    let (tx, rx) = tokio::sync::watch::channel(Track::default());
+                                    let mut worker = match crate::worker::ServerWorker::new(
+                                        youtube_url.clone(),
+                                        state.clone(),
+                                    ) {
+                                        Ok(worker) => worker,
+                                        Err(_) => {
+                                            warn!("creation failure");
+                                            break;
+                                        }
+                                    };
+                                    match worker.work(tx).await {
+                                        Ok(_) => {
+                                            data.track_channels
+                                                .write()
+                                                .insert(youtube_id.clone(), rx.clone());
+                                            rx
+                                        }
+                                        Err(_) => {
+                                            warn!("work failure");
+                                            break;
+                                        }
+                                    }
+                                };
+
+                                // send new message on channel update
+                                let mut session_clone = session.clone();
+                                actix_rt::spawn(async move {
+                                    loop {
+                                        if rx.changed().await.is_err() {
+                                            break;
+                                        }
+                                        let track = rx.borrow_and_update().clone();
+                                        // if track is empty, we might have created the channel with default empty track
+                                        // so skip this and wait for the next one
+                                        if !track.is_empty() {
+                                            let ser_track = serde_json::to_string(&track).unwrap();
+                                            if session_clone.text(ser_track).await.is_err() {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                });
+
+                                // if client does not ping for some time - close socket
+                                let last_ping = last_ping.clone();
+                                let session_clone = session.clone();
+                                actix_rt::spawn(async move {
+                                    loop {
+                                        if last_ping.read().elapsed()
+                                            > *SERVER_PING_TIMEOUT_INTERVAL
+                                        {
+                                            break;
+                                        }
+                                        tokio::time::sleep(*REGULAR_INTERVAL).await;
+                                    }
+                                    warn!("Did not receive ping from socket for a while, closing");
+                                    let _ = session_clone.close(None).await;
+                                });
                             }
-                        });
-                        // Check if there is a worker already find its rx channel otherwise create worker and bring its rx channel
-                        let youtube = youtube_url.clone();
-                        let state = data.clone();
-                        let should_reuse = data.track_channels.read().contains_key(&youtube_url);
-                        let mut rx = if should_reuse {
-                            if let Some(rx) = data.track_channels.read().get(&youtube_url) {
-                                rx.clone()
-                            } else {
-                                warn!("reuse failure");
+                            None => {
+                                warn!("Cannot parse url into youtube id");
                                 break;
                             }
-                        } else {
-                            let (tx, rx) = tokio::sync::watch::channel(Track::default());
-                            let mut worker = match crate::worker::ServerWorker::new(
-                                youtube.clone(),
-                                state.clone(),
-                            ) {
-                                Ok(worker) => worker,
-                                Err(_) => {
-                                    warn!("creation failure");
-                                    break;
-                                }
-                            };
-                            match worker.work(tx).await {
-                                Ok(_) => {
-                                    data.track_channels
-                                        .write()
-                                        .insert(youtube.clone(), rx.clone());
-                                    rx
-                                }
-                                Err(_) => {
-                                    warn!("work failure");
-                                    break;
-                                }
-                            }
-                        };
-
-                        // send new message on channel update
-                        let mut session_clone = session.clone();
-                        actix_rt::spawn(async move {
-                            // discard first empty value
-                            rx.borrow_and_update();
-                            loop {
-                                if rx.changed().await.is_err() {
-                                    break;
-                                }
-                                let track = rx.borrow_and_update().clone();
-                                let ser_track = serde_json::to_string(&track).unwrap();
-                                if session_clone.text(ser_track).await.is_err() {
-                                    break;
-                                }
-                            }
-                        });
-
-                        // if client does not ping for some time - close socket
-                        let last_ping = last_ping.clone();
-                        let session_clone = session.clone();
-                        actix_rt::spawn(async move {
-                            loop {
-                                if last_ping.read().elapsed() > *SERVER_PING_TIMEOUT_INTERVAL {
-                                    break;
-                                }
-                                tokio::time::sleep(*REGULAR_INTERVAL).await;
-                            }
-                            warn!("Did not receive ping from socket for a while, closing");
-                            let _ = session_clone.close(None).await;
-                        });
+                        }
                     }
                     Err(_) => {
-                        warn!("warning err");
+                        warn!("Cannot parse the string into url");
                         break;
                     }
                 },
@@ -270,8 +272,8 @@ pub(crate) async fn health() -> Result<HttpResponse> {
 
 #[derive(Error, Debug, Serialize)]
 pub enum ServerResponseError {
-    #[error("Track not available.")]
-    TrackNotAvailable,
     #[error("LastFM API is not available")]
     APINotAvailable,
+    #[error("Youtube link is not valid")]
+    InvalidYoutubeLink,
 }
