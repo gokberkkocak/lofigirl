@@ -36,7 +36,7 @@ Fill the server information first. OUpon submitting the server information, the 
 
 ![Config](images/config_full_no_session.png)
 
-When we fill your LastFM details, it sends the username/password information to server side for one time only to request a permanent LastFM session key (server information should be already filled out). This lastfm session key is sent back to the web client and used for sending track listening. The system does not store your password details at any point.
+When LastFM details are filled, it sends the username/password information to server side for one time only to request a permanent LastFM session key (server information should be already filled out). This lastfm session key is sent back to the web client and used for sending track listening. The system does not store your password details at any point.
 
 ### Config with Session Token
 
@@ -47,6 +47,8 @@ Instead of sending LastFM session key and/or ListenBrainz token on every single 
 ### Home Page on Listening
 
 ![listen](images/home_listening.png)
+
+When starting scrobbling, the web client establishes a websocket connection and listens track changes events. When a track changes occur, the web client send listening info via already pre-established REST endpoint.
 
 - Example on listenbrainz
 
