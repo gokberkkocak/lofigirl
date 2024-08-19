@@ -1,6 +1,7 @@
 pub mod api;
 pub mod config;
 pub mod track;
+mod encrpyt;
 
 use std::{sync::LazyLock, time::Duration};
 
