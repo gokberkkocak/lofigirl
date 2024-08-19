@@ -2,36 +2,34 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    config::{LastFMClientPasswordConfig, LastFMClientSessionConfig},
-    track::Track,
-};
+use crate::{encrypt::SecureString, track::Track};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScrobbleRequest {
-    pub token: String,
+    // pub token: SecureString,
     pub action: Action,
     pub track: Track,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SessionRequest {
-    pub password_config: LastFMClientPasswordConfig,
+    pub username: String,
+    pub secure_password: SecureString,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SessionResponse {
-    pub session_config: LastFMClientSessionConfig,
+    pub secure_session_key: SecureString,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenRequest {
-    pub lastfm_session_key: Option<String>,
-    pub listenbrainz_token: Option<String>,
+    pub secure_lastfm_session_key: Option<SecureString>,
+    pub secure_listenbrainz_token: Option<SecureString>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenResponse {
-    pub token: String,
+    pub token: SecureString,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

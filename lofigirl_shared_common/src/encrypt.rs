@@ -13,8 +13,8 @@ static ENCRYPTION_KEY: LazyLock<Key<Aes256Gcm>> = LazyLock::new(|| (*ENCRYPTION_
 static AES_CIPHER: LazyLock<AesGcm<Aes256, U12>> = LazyLock::new(|| Aes256Gcm::new(&ENCRYPTION_KEY) );
 static AES_IV: LazyLock<&'static GenericArray<u8, U12>> = LazyLock::new(|| Nonce::from_slice(ENCRYPTION_IV_BYTES));
 
-#[derive(Debug)]
-pub struct SecureString(String);
+#[derive(Debug, Clone)]
+pub struct SecureString(pub String);
 
 impl Serialize for SecureString {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -38,7 +38,19 @@ impl<'de> Deserialize<'de> for SecureString {
     }
 }
 
-trait AesEncryption {
+impl Into<String> for SecureString {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+impl From<String> for SecureString {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+pub trait AesEncryption {
     fn encrypt(&self) -> anyhow::Result<Self>
     where
         Self: Sized;

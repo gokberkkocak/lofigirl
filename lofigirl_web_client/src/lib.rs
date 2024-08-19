@@ -4,11 +4,7 @@ mod view;
 use std::rc::Rc;
 
 use lofigirl_shared_common::{
-    api::{Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse},
-    config::{LastFMClientPasswordConfig, LastFMClientSessionConfig, ListenBrainzConfig},
-    track::Track,
-    CLIENT_PING_INTERVAL, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, SEND_END_POINT,
-    TOKEN_END_POINT, TRACK_SOCKET_END_POINT,
+    api::{Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse}, config::{LastFMClientPasswordConfig, LastFMClientSessionConfig, ListenBrainzConfig}, encrypt::AesEncryption, track::Track, CLIENT_PING_INTERVAL, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, SEND_END_POINT, TOKEN_END_POINT, TRACK_SOCKET_END_POINT
 };
 
 use gloo_net::{
@@ -139,7 +135,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     fetch_lastfm_session(&url, LastFMClientPasswordConfig { username, password })
                         .await
                         .unwrap();
-                Msg::LastFMSessionReceived(session_response.session_config)
+                Msg::LastFMSessionReceived(LastFMClientSessionConfig {
+                    session_key: session_response.secure_session_key.into(),
+                })
             });
         }
         Msg::ListenBrainzFormSubmitted => {
@@ -203,7 +201,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     .map(|l| l.token.to_owned());
                 orders.perform_cmd(async move {
                     let token = fetch_session_token(&server, l, ls).await.unwrap();
-                    Msg::UpdateTokenThenPlay(token.token)
+                    Msg::UpdateTokenThenPlay(token.token.into())
                 });
             } else {
                 model.is_scrobbling = true;
@@ -281,7 +279,10 @@ async fn fetch_lastfm_session(
 ) -> anyhow::Result<SessionResponse> {
     let session_response = Request::post(url)
         .method(Method::POST)
-        .json(&SessionRequest { password_config })?
+        .json(&SessionRequest {
+            username: password_config.username,
+            secure_password: password_config.password.into(),
+        })?
         .send()
         .await?
         .json()
@@ -298,8 +299,8 @@ async fn fetch_session_token(
     let token_response = Request::post(&url)
         .method(Method::POST)
         .json(&TokenRequest {
-            lastfm_session_key,
-            listenbrainz_token,
+            secure_lastfm_session_key: lastfm_session_key.map(|s| s.into()),
+            secure_listenbrainz_token: listenbrainz_token.map(|s| s.into()),
         })?
         .send()
         .await?
@@ -316,10 +317,14 @@ async fn post_track_action(
 ) -> anyhow::Result<()> {
     Request::post(&format!("{}{}", server, SEND_END_POINT))
         .method(Method::POST)
+        .header(
+            "Authorization",
+            &("Bearer ".to_owned() + &token.to_owned().encrypt()?),
+        )
         .json(&ScrobbleRequest {
             action,
             track,
-            token: token.to_owned(),
+            // token: token.to_owned().into(),
         })?
         .send()
         .await?;

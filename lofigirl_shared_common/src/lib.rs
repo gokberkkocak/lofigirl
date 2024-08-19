@@ -1,7 +1,7 @@
 pub mod api;
 pub mod config;
 pub mod track;
-mod encrpyt;
+pub mod encrypt;
 
 use std::{sync::LazyLock, time::Duration};
 

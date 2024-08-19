@@ -13,6 +13,7 @@ lofigirl_shared_listen = { path = "../lofigirl_shared_listen"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 actix-web = "4.8"
+actix-web-httpauth = "0.8"
 actix-cors = "0.7"
 actix-rt = "2.10"
 actix-ws = "0.3"
