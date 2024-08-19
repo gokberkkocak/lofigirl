@@ -21,7 +21,7 @@ use {
     lofigirl_shared_common::config::ConfigError,
     lofigirl_shared_common::config::LastFMClientPasswordConfig,
     lofigirl_shared_common::config::LastFMClientSessionConfig,
-    lofigirl_shared_common::encrypt::AesEncryption,
+    lofigirl_shared_common::jwt::JWTClaims,
     lofigirl_shared_common::LASTFM_SESSION_END_POINT,
     lofigirl_shared_common::SEND_END_POINT,
     lofigirl_shared_common::TOKEN_END_POINT,
@@ -47,7 +47,7 @@ pub struct Worker {
     requested_url: String,
     track_send_url: String,
     track_socket_url: String,
-    encrypted_token: String,
+    token: String,
 }
 
 #[cfg(feature = "standalone")]
@@ -158,7 +158,6 @@ impl Worker {
             .to_owned();
 
         let token = Worker::get_token(config, &client, &base_url, &mut config_changed).await?;
-        let encrypted_token = token.encrypt()?;
         let track_send_url = format!("{}{}", base_url, SEND_END_POINT);
         info!("Client worker initialized");
 
@@ -182,7 +181,7 @@ impl Worker {
                 requested_url: requested_url.into(),
                 track_send_url,
                 track_socket_url,
-                encrypted_token,
+                token,
             },
             config_changed,
         ))
@@ -264,12 +263,10 @@ impl Worker {
     }
 
     async fn post_track(&self, track: &Track, action: Action) -> Result<()> {
+        let jwt_token = JWTClaims::encode(self.token.to_owned())?;
         self.client
             .post(&self.track_send_url)
-            .header(
-                "Authorization",
-                "Bearer ".to_owned() + &self.encrypted_token,
-            )
+            .header("Authorization", "Bearer ".to_owned() + &jwt_token)
             .json(&ScrobbleRequest {
                 action,
                 track: track.to_owned(),

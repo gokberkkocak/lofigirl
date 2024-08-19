@@ -13,7 +13,7 @@ use lofigirl_shared_common::api::{
     ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse,
 };
 use lofigirl_shared_common::config::LastFMClientConfig;
-use lofigirl_shared_common::encrypt::AesEncryption as _;
+use lofigirl_shared_common::jwt::JWTClaims;
 use lofigirl_shared_common::track::Track;
 use lofigirl_shared_common::{REGULAR_INTERVAL, SERVER_PING_TIMEOUT_INTERVAL};
 use lofigirl_shared_listen::listener::Listener;
@@ -33,11 +33,12 @@ pub(crate) async fn send(
     info: web::Json<ScrobbleRequest>,
 ) -> Result<HttpResponse> {
     let auth = Authorization::<Bearer>::parse(&req)?;
-    let bearer_token = auth.as_ref().token().to_owned();
-    let token = bearer_token
-        .decrypt()
+    let bearer_token_jwt = auth.as_ref().token().to_owned();
+    let token_data = JWTClaims::decode(bearer_token_jwt);
+    info!("{:?}", token_data);
+    let token_data = token_data
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
-
+    let token: String = token_data.encrypted_token.into();
     let info = info.into_inner();
     let mut listener = Listener::default();
     let (lfm, lb) = data

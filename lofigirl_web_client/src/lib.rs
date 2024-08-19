@@ -4,7 +4,10 @@ mod view;
 use std::rc::Rc;
 
 use lofigirl_shared_common::{
-    api::{Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse}, config::{LastFMClientPasswordConfig, LastFMClientSessionConfig, ListenBrainzConfig}, encrypt::AesEncryption, track::Track, CLIENT_PING_INTERVAL, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, SEND_END_POINT, TOKEN_END_POINT, TRACK_SOCKET_END_POINT
+    api::{
+        Action, ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest,
+        TokenResponse,
+    }, config::{LastFMClientPasswordConfig, LastFMClientSessionConfig, ListenBrainzConfig}, jwt::JWTClaims, track::Track, CLIENT_PING_INTERVAL, HEALTH_END_POINT, LASTFM_SESSION_END_POINT, SEND_END_POINT, TOKEN_END_POINT, TRACK_SOCKET_END_POINT
 };
 
 use gloo_net::{
@@ -319,7 +322,7 @@ async fn post_track_action(
         .method(Method::POST)
         .header(
             "Authorization",
-            &("Bearer ".to_owned() + &token.to_owned().encrypt()?),
+            &("Bearer ".to_owned() + &JWTClaims::encode(token.to_owned())?),
         )
         .json(&ScrobbleRequest {
             action,
