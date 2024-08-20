@@ -98,7 +98,7 @@ impl<'de> Visitor<'de> for CustomVisitor {
     type Value = SecureString;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "a map with keys 'encrypted_text' and 'nonce_base64'")
+        write!(formatter, "a map with keys 'encrypted_base64' and 'nonce_base64'")
     }
 
     fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
