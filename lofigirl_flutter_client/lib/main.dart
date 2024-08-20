@@ -4,6 +4,9 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:lofigirl_flutter_client/config.dart';
+import 'package:lofigirl_flutter_client/encrypt.dart';
+import 'package:lofigirl_flutter_client/jwt.dart';
+import 'package:lofigirl_flutter_client/secret.dart';
 import 'package:lofigirl_flutter_client/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -49,6 +52,7 @@ class _LofiGirlState extends State<LofiGirl> {
   WebSocketChannel? _channel;
   StreamSubscription? _socketStreamHandle;
   Timer? _pingTimerHandle;
+  Secret? _aesSecret;
 
   @override
   void initState() {
@@ -66,6 +70,7 @@ class _LofiGirlState extends State<LofiGirl> {
 
   void _loadValues() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final aesSecret = await SecretLoader("secrets.json").load();
     setState(() {
       _lastFmSessionKey = prefs.getString('lastFmSessionKey');
       _listenBrainzToken = prefs.getString('listenBrainzToken');
@@ -73,6 +78,7 @@ class _LofiGirlState extends State<LofiGirl> {
       _serverUrl = prefs.getString('serverUrl');
       _lastFmUsername = prefs.getString('lastFmUsername');
       _streamUrl = prefs.getString("streamUrl");
+      _aesSecret = aesSecret;
     });
   }
 
@@ -122,16 +128,19 @@ class _LofiGirlState extends State<LofiGirl> {
     );
   }
 
-  void _sendInfo(String info) {
+  void _sendInfo(String info) async {
     final url = Uri.parse('$_serverUrl/send');
     developer.log('POST $url', name: 'LofiGirl');
     if (url.isAbsolute) {
-      var request = ScrobbleRequest(_sessionToken!, _currentTrack!, info);
+      var request = ScrobbleRequest(_currentTrack!, info);
       var body = json.encode(request.toJson());
+      var jwtClaims = JWTClaims(SecureString(_sessionToken!, _aesSecret!));
+      var jwt = await jwtClaims.generate(_aesSecret!);
       http
           .post(url,
               headers: <String, String>{
                 'Content-Type': 'application/json; charset=UTF-8',
+                'Authorization': 'Bearer $jwt'
               },
               body: body)
           .then((http.Response response) {
@@ -229,8 +238,8 @@ class _LofiGirlState extends State<LofiGirl> {
       final url = Uri.parse('$_serverUrl/session');
       developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
-        var config = LastFMClientPasswordConfig(_lastFmUsername!, value);
-        var request = SessionRequest(config);
+        var request =
+            SessionRequest(_lastFmUsername!, SecureString(value, _aesSecret!));
         final body = json.encode(request.toJson());
         final response = await http.post(
           url,
@@ -277,7 +286,13 @@ class _LofiGirlState extends State<LofiGirl> {
       final url = Uri.parse('$_serverUrl/token');
       developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
-        var request = TokenRequest(_lastFmSessionKey, _listenBrainzToken);
+        var request = TokenRequest(
+            _lastFmSessionKey != null
+                ? SecureString(_lastFmSessionKey!, _aesSecret!)
+                : null,
+            _listenBrainzToken != null
+                ? SecureString(_listenBrainzToken!, _aesSecret!)
+                : null);
         final body = json.encode(request.toJson());
         final response = await http.post(
           url,

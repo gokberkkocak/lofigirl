@@ -1,27 +1,20 @@
-class LastFMClientPasswordConfig {
-  final String username;
-  final String password;
+import 'package:lofigirl_flutter_client/encrypt.dart';
 
-  LastFMClientPasswordConfig(this.username, this.password);
+class SessionRequest {
+  final String username;
+  final SecureString securePassword;
+
+  SessionRequest(this.username, this.securePassword);
 
   Map<String, dynamic> toJson() => {
         'username': username,
-        'password': password,
-      };
-}
-
-class SessionRequest {
-  final LastFMClientPasswordConfig passwordConfig;
-  SessionRequest(this.passwordConfig);
-
-  Map<String, dynamic> toJson() => {
-        'password_config': passwordConfig.toJson(),
+        'secure_password': securePassword,
       };
 }
 
 class TokenRequest {
-  final String? lastfmSessionKey;
-  final String? listenbrainzToken;
+  final SecureString? lastfmSessionKey;
+  final SecureString? listenbrainzToken;
   TokenRequest(this.lastfmSessionKey, this.listenbrainzToken);
 
   Map toJson() => {
@@ -47,14 +40,12 @@ class Track {
 }
 
 class ScrobbleRequest {
-  final String token;
   final String action;
   final Track track;
 
-  ScrobbleRequest(this.token, this.track, this.action);
+  ScrobbleRequest(this.track, this.action);
 
   Map<String, dynamic> toJson() => {
-        'token': token,
         'action': action,
         'track': track.toJson(),
       };

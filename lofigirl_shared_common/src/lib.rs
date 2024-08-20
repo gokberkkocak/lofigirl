@@ -15,8 +15,6 @@ pub static CLIENT_PING_INTERVAL: LazyLock<Duration> = LazyLock::new(|| Duration:
 pub static SERVER_PING_TIMEOUT_INTERVAL: LazyLock<Duration> =
     LazyLock::new(|| Duration::from_secs(60));
 
-pub const JWT_SHARED_SECRET: &str = "lofi_jwt";
-
 pub const SEND_END_POINT: &str = "/send";
 pub const TRACK_END_POINT: &str = "/track";
 pub const TRACK_SOCKET_END_POINT: &str = "/track_ws";

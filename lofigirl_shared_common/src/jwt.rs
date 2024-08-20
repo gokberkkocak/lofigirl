@@ -1,11 +1,13 @@
 use jwt_compact::{alg::Hs256, AlgorithmExt as _, Token, UntrustedToken};
 use serde::{Deserialize, Serialize};
 
-use crate::{encrypt::SecureString, JWT_SHARED_SECRET};
+use crate::encrypt::SecureString;
+
+const JWT_SHARED_SECRET: &str = include_str!("../../secrets/key.aes");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JWTClaims {
-    pub encrypted_token: SecureString,
+    pub secure_token: SecureString,
 }
 
 impl JWTClaims {
@@ -13,7 +15,7 @@ impl JWTClaims {
         let time_options = jwt_compact::TimeOptions::default();
         let key = jwt_compact::alg::Hs256Key::new(JWT_SHARED_SECRET);
         let my_claims = JWTClaims {
-            encrypted_token: token.into(),
+            secure_token: token.into(),
         };
         let claims = jwt_compact::Claims::new(my_claims)
             .set_duration_and_issuance(&time_options, chrono::Duration::hours(1))
@@ -23,7 +25,7 @@ impl JWTClaims {
         Ok(token_string)
     }
 
-    pub fn decode(encoded: String) -> anyhow::Result<Self> {
+    pub fn decode(encoded: String) -> anyhow::Result<String> {
         let time_options = jwt_compact::TimeOptions::default();
         let key = jwt_compact::alg::Hs256Key::new(JWT_SHARED_SECRET);
         let token = UntrustedToken::new(&encoded)?;
@@ -33,6 +35,6 @@ impl JWTClaims {
             .claims()
             .validate_expiration(&time_options)?
             .validate_maturity(&time_options)?;
-        Ok(token.claims().custom.clone())
+        Ok(token.claims().custom.clone().secure_token.into())
     }
 }

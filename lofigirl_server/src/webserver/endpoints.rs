@@ -34,11 +34,8 @@ pub(crate) async fn send(
 ) -> Result<HttpResponse> {
     let auth = Authorization::<Bearer>::parse(&req)?;
     let bearer_token_jwt = auth.as_ref().token().to_owned();
-    let token_data = JWTClaims::decode(bearer_token_jwt);
-    info!("{:?}", token_data);
-    let token_data = token_data
-        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
-    let token: String = token_data.encrypted_token.into();
+    let token = JWTClaims::decode(bearer_token_jwt)
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::UNAUTHORIZED))?;
     let info = info.into_inner();
     let mut listener = Listener::default();
     let (lfm, lb) = data

@@ -3,3 +3,4 @@ config.toml
 pkg
 token.db*
 debug_*.jpg
+key.aes
