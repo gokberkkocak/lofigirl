@@ -28,7 +28,7 @@ pub trait Aes256GCMEncryption {
     fn encrypt(&self) -> anyhow::Result<(Vec<u8>, GenericArray<u8, U12>)>
     where
         Self: Sized;
-    fn decrypt(encrypted: Vec<u8>, nonce: GenericArray<u8, U12>) -> anyhow::Result<Self>
+    fn decrypt(encrypted: Vec<u8>, nonce: &GenericArray<u8, U12>) -> anyhow::Result<Self>
     where
         Self: Sized;
 }
@@ -43,10 +43,10 @@ impl Aes256GCMEncryption for String {
         Ok((ciphertext, nonce))
     }
 
-    fn decrypt(encrypted: Vec<u8>, nonce: GenericArray<u8, U12>) -> anyhow::Result<Self> {
+    fn decrypt(encrypted: Vec<u8>, nonce: &GenericArray<u8, U12>) -> anyhow::Result<Self> {
         // let ciphertext = general_purpose::STANDARD.decode(self)?;
         let plaintext = AES_CIPHER
-            .decrypt(&nonce, encrypted.as_ref())
+            .decrypt(nonce, encrypted.as_ref())
             .map_err(anyhow::Error::msg)?;
         Ok(String::from_utf8(plaintext)?)
     }
@@ -121,7 +121,7 @@ impl<'de> Visitor<'de> for CustomVisitor {
             let nonce_array = general_purpose::STANDARD
                 .decode(nonce_base64)
                 .map_err(serde::de::Error::custom)?;
-            let nonce = GenericArray::clone_from_slice(&nonce_array);
+            let nonce = GenericArray::from_slice(&nonce_array);
             let encrypted = general_purpose::STANDARD
                 .decode(encrypted_base64)
                 .map_err(serde::de::Error::custom)?;
