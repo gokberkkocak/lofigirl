@@ -52,7 +52,6 @@ class _LofiGirlState extends State<LofiGirl> {
   WebSocketChannel? _channel;
   StreamSubscription? _socketStreamHandle;
   Timer? _pingTimerHandle;
-  Secret? _aesSecret;
 
   @override
   void initState() {
@@ -70,7 +69,8 @@ class _LofiGirlState extends State<LofiGirl> {
 
   void _loadValues() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final aesSecret = await SecretLoader("secrets.json").load();
+    // init Secret and set key
+    await SecretLoader("secrets.json").load();
     setState(() {
       _lastFmSessionKey = prefs.getString('lastFmSessionKey');
       _listenBrainzToken = prefs.getString('listenBrainzToken');
@@ -78,7 +78,6 @@ class _LofiGirlState extends State<LofiGirl> {
       _serverUrl = prefs.getString('serverUrl');
       _lastFmUsername = prefs.getString('lastFmUsername');
       _streamUrl = prefs.getString("streamUrl");
-      _aesSecret = aesSecret;
     });
   }
 
@@ -134,8 +133,8 @@ class _LofiGirlState extends State<LofiGirl> {
     if (url.isAbsolute) {
       var request = ScrobbleRequest(_currentTrack!, info);
       var body = json.encode(request.toJson());
-      var jwtClaims = JWTClaims(SecureString(_sessionToken!, _aesSecret!));
-      var jwt = await jwtClaims.generate(_aesSecret!);
+      var jwtClaims = JWTClaims(SecureString(_sessionToken!));
+      var jwt = await jwtClaims.generate();
       http
           .post(url,
               headers: <String, String>{
@@ -238,8 +237,7 @@ class _LofiGirlState extends State<LofiGirl> {
       final url = Uri.parse('$_serverUrl/session');
       developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
-        var request =
-            SessionRequest(_lastFmUsername!, SecureString(value, _aesSecret!));
+        var request = SessionRequest(_lastFmUsername!, SecureString(value));
         final body = json.encode(request.toJson());
         final response = await http.post(
           url,
@@ -249,11 +247,11 @@ class _LofiGirlState extends State<LofiGirl> {
           body: body,
         );
         if (response.statusCode == 200) {
-          final sessionKey =
-              json.decode(response.body)['session_config']['session_key'];
+          final sessionKey = SecureString.fromJson(
+              json.decode(response.body)['secure_session_key']);
           setState(() {
-            _lastFmSessionKey = sessionKey;
-            prefs.setString("lastFmSessionKey", sessionKey);
+            _lastFmSessionKey = sessionKey.value;
+            prefs.setString("lastFmSessionKey", sessionKey.value);
           });
           const snackBar = SnackBar(
             content: Text('Last.fm session key is set!'),
@@ -287,11 +285,9 @@ class _LofiGirlState extends State<LofiGirl> {
       developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
         var request = TokenRequest(
-            _lastFmSessionKey != null
-                ? SecureString(_lastFmSessionKey!, _aesSecret!)
-                : null,
+            _lastFmSessionKey != null ? SecureString(_lastFmSessionKey!) : null,
             _listenBrainzToken != null
-                ? SecureString(_listenBrainzToken!, _aesSecret!)
+                ? SecureString(_listenBrainzToken!)
                 : null);
         final body = json.encode(request.toJson());
         final response = await http.post(
@@ -302,10 +298,11 @@ class _LofiGirlState extends State<LofiGirl> {
           body: body,
         );
         if (response.statusCode == 200) {
-          final token = json.decode(response.body)['token'];
+          final secure_token =
+              SecureString.fromJson(json.decode(response.body)["secure_token"]);
           setState(() {
-            _sessionToken = token;
-            prefs.setString("sessionToken", token);
+            _sessionToken = secure_token.value;
+            prefs.setString("sessionToken", secure_token.value);
           });
           const snackBar = SnackBar(
             content: Text('Session token is set!'),

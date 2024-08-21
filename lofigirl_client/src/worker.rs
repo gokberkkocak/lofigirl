@@ -259,7 +259,7 @@ impl Worker {
             .await?
             .json::<TokenResponse>()
             .await?;
-        Ok(token_response.token.into())
+        Ok(token_response.secure_token.into())
     }
 
     async fn post_track(&self, track: &Track, action: Action) -> Result<()> {

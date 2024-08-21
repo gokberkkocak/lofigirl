@@ -8,7 +8,7 @@ class SessionRequest {
 
   Map<String, dynamic> toJson() => {
         'username': username,
-        'secure_password': securePassword,
+        'secure_password': securePassword.toJson(),
       };
 }
 
@@ -17,10 +17,14 @@ class TokenRequest {
   final SecureString? listenbrainzToken;
   TokenRequest(this.lastfmSessionKey, this.listenbrainzToken);
 
-  Map toJson() => {
-        'lastfm_session_key': lastfmSessionKey,
-        'listenbrainz_token': listenbrainzToken,
-      };
+  Map<String, dynamic> toJson() {
+    var data = new Map<String, dynamic>();
+    if (lastfmSessionKey != null)
+      data['secure_lastfm_session_key'] = lastfmSessionKey?.toJson();
+    if (listenbrainzToken != null)
+      data['secure_listenbrainz_token'] = listenbrainzToken?.toJson();
+    return data;
+  }
 }
 
 class Track {

@@ -204,7 +204,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     .map(|l| l.token.to_owned());
                 orders.perform_cmd(async move {
                     let token = fetch_session_token(&server, l, ls).await.unwrap();
-                    Msg::UpdateTokenThenPlay(token.token.into())
+                    Msg::UpdateTokenThenPlay(token.secure_token.into())
                 });
             } else {
                 model.is_scrobbling = true;

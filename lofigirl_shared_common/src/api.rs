@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use crate::{encrypt::SecureString, track::Track};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScrobbleRequest {
-    // pub token: SecureString,
     pub action: Action,
     pub track: Track,
 }
@@ -29,7 +28,7 @@ pub struct TokenRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenResponse {
-    pub token: SecureString,
+    pub secure_token: SecureString,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -279,7 +279,7 @@ pub(crate) async fn token(
         .await
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
     Ok(HttpResponse::Ok().json(TokenResponse {
-        token: token.into(),
+        secure_token: token.into(),
     }))
 }
 
