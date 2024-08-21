@@ -69,8 +69,6 @@ class _LofiGirlState extends State<LofiGirl> {
 
   void _loadValues() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    // init Secret and set key
-    await SecretLoader("secrets.json").load();
     setState(() {
       _lastFmSessionKey = prefs.getString('lastFmSessionKey');
       _listenBrainzToken = prefs.getString('listenBrainzToken');
@@ -78,6 +76,9 @@ class _LofiGirlState extends State<LofiGirl> {
       _serverUrl = prefs.getString('serverUrl');
       _lastFmUsername = prefs.getString('lastFmUsername');
       _streamUrl = prefs.getString("streamUrl");
+      // init Secret and set key
+      final secret = Secret();
+      secret.initKey();
     });
   }
 

@@ -13,7 +13,7 @@ use serde::{
 };
 use typenum::U12;
 
-const ENCRYPTION_KEY_BASE64: &[u8; 44] = include_bytes!("../../secrets/key.aes");
+use crate::ENCRYPTION_KEY_BASE64;
 
 static AES_CIPHER: LazyLock<AesGcm<Aes256, U12>> = LazyLock::new(|| {
     let key_bytes = general_purpose::STANDARD

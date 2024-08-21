@@ -21,3 +21,5 @@ pub const TRACK_SOCKET_END_POINT: &str = "/track_ws";
 pub const LASTFM_SESSION_END_POINT: &str = "/session";
 pub const TOKEN_END_POINT: &str = "/token";
 pub const HEALTH_END_POINT: &str = "/health";
+
+pub const ENCRYPTION_KEY_BASE64: &[u8; 44] = b"MTIzNDU2NzgxMjM0NTY3ODEyMzQ1Njc4MTIzNDU2Nzg=";

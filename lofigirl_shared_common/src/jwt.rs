@@ -1,9 +1,7 @@
 use jwt_compact::{alg::Hs256, AlgorithmExt as _, Token, UntrustedToken};
 use serde::{Deserialize, Serialize};
 
-use crate::encrypt::SecureString;
-
-const JWT_SHARED_SECRET: &str = include_str!("../../secrets/key.aes");
+use crate::{encrypt::SecureString, ENCRYPTION_KEY_BASE64};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JWTClaims {
@@ -13,7 +11,7 @@ pub struct JWTClaims {
 impl JWTClaims {
     pub fn encode(token: String) -> anyhow::Result<String> {
         let time_options = jwt_compact::TimeOptions::default();
-        let key = jwt_compact::alg::Hs256Key::new(JWT_SHARED_SECRET);
+        let key = jwt_compact::alg::Hs256Key::new(ENCRYPTION_KEY_BASE64);
         let my_claims = JWTClaims {
             secure_token: token.into(),
         };
@@ -27,7 +25,7 @@ impl JWTClaims {
 
     pub fn decode(encoded: String) -> anyhow::Result<String> {
         let time_options = jwt_compact::TimeOptions::default();
-        let key = jwt_compact::alg::Hs256Key::new(JWT_SHARED_SECRET);
+        let key = jwt_compact::alg::Hs256Key::new(ENCRYPTION_KEY_BASE64);
         let token = UntrustedToken::new(&encoded)?;
         let token: Token<JWTClaims> = Hs256.validator(&key).validate(&token)?;
 
