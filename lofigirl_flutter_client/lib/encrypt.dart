@@ -26,8 +26,7 @@ class SecureString {
 
 class AesHelper {
   (String, String) encrypt(String value) {
-    final secret = Secret();
-    final key = Key.fromBase64(secret.aesKey!);
+    final key = Key.fromBase64(Secret.aesKey);
     final nonce = IV.fromLength(12);
     final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
     final encrypted = encrypter.encrypt(value, iv: nonce);
@@ -35,8 +34,7 @@ class AesHelper {
   }
 
   String decrypt(String encryptedBase64, String nonceBase64) {
-    final secret = Secret();
-    final key = Key.fromBase64(secret.aesKey!);
+    final key = Key.fromBase64(Secret.aesKey);
     final nonce = IV.fromBase64(nonceBase64);
     final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
     final encrypted = Encrypted.from64(encryptedBase64);

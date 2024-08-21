@@ -76,9 +76,6 @@ class _LofiGirlState extends State<LofiGirl> {
       _serverUrl = prefs.getString('serverUrl');
       _lastFmUsername = prefs.getString('lastFmUsername');
       _streamUrl = prefs.getString("streamUrl");
-      // init Secret and set key
-      final secret = Secret();
-      secret.initKey();
     });
   }
 

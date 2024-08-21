@@ -8,8 +8,7 @@ class JWTClaims {
   JWTClaims(this.value);
 
   Future<String> generate() async {
-    final secret = Secret();
-    final secretKey = SecretKey(secret.aesKey!);
+    final secretKey = SecretKey(Secret.aesKey);
     final jsonValue = await value.toJson();
     final jwt = JWT({"secure_token": jsonValue});
     final token = jwt.sign(secretKey,
