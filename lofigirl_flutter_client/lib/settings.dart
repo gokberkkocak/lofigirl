@@ -167,7 +167,7 @@ class ConnectButton extends StatelessWidget {
     return ElevatedButton(
       child: const Text('Connect!'),
       onPressed: () async {
-        var ret = onSessionTokenRequest();
+        final ret = onSessionTokenRequest();
         ret.then((value) =>
             developer.log("App Connected: $value", name: 'ConnectButton'));
       },

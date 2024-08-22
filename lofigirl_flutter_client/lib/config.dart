@@ -1,4 +1,4 @@
-import 'package:lofigirl_flutter_client/encrypt.dart';
+import 'package:lofigirl_flutter_client/security.dart';
 
 class SessionRequest {
   final String username;
@@ -18,11 +18,13 @@ class TokenRequest {
   TokenRequest(this.lastfmSessionKey, this.listenbrainzToken);
 
   Map<String, dynamic> toJson() {
-    var data = new Map<String, dynamic>();
-    if (lastfmSessionKey != null)
+    var data = <String, dynamic>{};
+    if (lastfmSessionKey != null) {
       data['secure_lastfm_session_key'] = lastfmSessionKey?.toJson();
-    if (listenbrainzToken != null)
+    }
+    if (listenbrainzToken != null) {
       data['secure_listenbrainz_token'] = listenbrainzToken?.toJson();
+    }
     return data;
   }
 }
