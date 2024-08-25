@@ -1,16 +1,19 @@
 use std::sync::Arc;
 use std::time::Instant;
 
+use actix_web::http::header::Header;
 use actix_web::http::StatusCode;
 
 use actix_web::{web, HttpRequest, Responder};
 use actix_web::{HttpResponse, Result};
+use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use actix_ws::Message;
 use futures_util::StreamExt as _;
 use lofigirl_shared_common::api::{
     ScrobbleRequest, SessionRequest, SessionResponse, TokenRequest, TokenResponse,
 };
 use lofigirl_shared_common::config::LastFMClientConfig;
+use lofigirl_shared_common::jwt::JWTClaims;
 use lofigirl_shared_common::track::Track;
 use lofigirl_shared_common::{REGULAR_INTERVAL, SERVER_PING_TIMEOUT_INTERVAL};
 use lofigirl_shared_listen::listener::Listener;
@@ -25,14 +28,19 @@ use crate::util::YoutubeIdExtractor;
 use super::AppState;
 
 pub(crate) async fn send(
+    req: HttpRequest,
     data: web::Data<AppState>,
     info: web::Json<ScrobbleRequest>,
 ) -> Result<HttpResponse> {
+    let auth = Authorization::<Bearer>::parse(&req)?;
+    let bearer_token_jwt = auth.as_ref().token().to_owned();
+    let token = JWTClaims::decode(bearer_token_jwt)
+        .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::UNAUTHORIZED))?;
     let info = info.into_inner();
     let mut listener = Listener::default();
     let (lfm, lb) = data
         .token_db
-        .get_info_from_token(&info.token)
+        .get_info_from_token(&token)
         .await
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
     if let Some(lastfm_client_session) = lfm {
@@ -241,10 +249,17 @@ pub(crate) async fn session(
     if let Some(api) = &data.lastfm_api {
         let session_config = Listener::convert_client_to_session(
             api,
-            &LastFMClientConfig::PasswordAuth(info.password_config),
+            &LastFMClientConfig::PasswordAuth(
+                lofigirl_shared_common::config::LastFMClientPasswordConfig {
+                    username: info.username,
+                    password: info.secure_password.into(),
+                },
+            ),
         )
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
-        Ok(HttpResponse::Ok().json(SessionResponse { session_config }))
+        Ok(HttpResponse::Ok().json(SessionResponse {
+            secure_session_key: session_config.session_key.into(),
+        }))
     } else {
         Ok(HttpResponse::NotFound().json(ServerResponseError::APINotAvailable))
     }
@@ -258,12 +273,14 @@ pub(crate) async fn token(
     let token = data
         .token_db
         .get_or_generate_token(
-            info.lastfm_session_key.as_ref(),
-            info.listenbrainz_token.as_ref(),
+            info.secure_lastfm_session_key.map(|s| s.into()).as_ref(),
+            info.secure_listenbrainz_token.map(|s| s.into()).as_ref(),
         )
         .await
         .map_err(|e| actix_web::error::InternalError::new(e, StatusCode::INTERNAL_SERVER_ERROR))?;
-    Ok(HttpResponse::Ok().json(TokenResponse { token }))
+    Ok(HttpResponse::Ok().json(TokenResponse {
+        secure_token: token.into(),
+    }))
 }
 
 pub(crate) async fn health() -> Result<HttpResponse> {

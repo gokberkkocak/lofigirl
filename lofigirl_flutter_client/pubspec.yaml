@@ -38,6 +38,8 @@ dependencies:
   shared_preferences: ^2.0.15
   http: ^1.2.2
   web_socket_channel: ^3.0.1
+  encrypt: ^5.0.3
+  dart_jsonwebtoken: ^2.14.0
 
 dev_dependencies:
   flutter_test:

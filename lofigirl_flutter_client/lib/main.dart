@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
-import 'package:lofigirl_flutter_client/config.dart';
-import 'package:lofigirl_flutter_client/settings.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+
+import 'package:lofigirl_flutter_client/config.dart';
+import 'package:lofigirl_flutter_client/security.dart';
+import 'package:lofigirl_flutter_client/settings.dart';
 
 void main() {
   runApp(const LofiGirlWithScaffold());
@@ -122,16 +124,18 @@ class _LofiGirlState extends State<LofiGirl> {
     );
   }
 
-  void _sendInfo(String info) {
+  void _sendInfo(String info) async {
     final url = Uri.parse('$_serverUrl/send');
     developer.log('POST $url', name: 'LofiGirl');
     if (url.isAbsolute) {
-      var request = ScrobbleRequest(_sessionToken!, _currentTrack!, info);
-      var body = json.encode(request.toJson());
+      final request = ScrobbleRequest(_currentTrack!, info);
+      final body = json.encode(request.toJson());
+      final jwt = JWTClaims(SecureString(_sessionToken!)).toJWT();
       http
           .post(url,
               headers: <String, String>{
                 'Content-Type': 'application/json; charset=UTF-8',
+                'Authorization': 'Bearer $jwt'
               },
               body: body)
           .then((http.Response response) {
@@ -229,8 +233,7 @@ class _LofiGirlState extends State<LofiGirl> {
       final url = Uri.parse('$_serverUrl/session');
       developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
-        var config = LastFMClientPasswordConfig(_lastFmUsername!, value);
-        var request = SessionRequest(config);
+        final request = SessionRequest(_lastFmUsername!, SecureString(value));
         final body = json.encode(request.toJson());
         final response = await http.post(
           url,
@@ -240,11 +243,11 @@ class _LofiGirlState extends State<LofiGirl> {
           body: body,
         );
         if (response.statusCode == 200) {
-          final sessionKey =
-              json.decode(response.body)['session_config']['session_key'];
+          final sessionKey = SecureString.fromJson(
+              json.decode(response.body)['secure_session_key']);
           setState(() {
-            _lastFmSessionKey = sessionKey;
-            prefs.setString("lastFmSessionKey", sessionKey);
+            _lastFmSessionKey = sessionKey.value;
+            prefs.setString("lastFmSessionKey", sessionKey.value);
           });
           const snackBar = SnackBar(
             content: Text('Last.fm session key is set!'),
@@ -263,7 +266,7 @@ class _LofiGirlState extends State<LofiGirl> {
       _lastFmSessionKey = null;
       prefs.remove('lastFmSessionKey');
     });
-    var snackBar = const SnackBar(
+    const snackBar = SnackBar(
       content: Text('Last.fm session key is deleted!'),
     );
     if (mounted) {
@@ -277,7 +280,11 @@ class _LofiGirlState extends State<LofiGirl> {
       final url = Uri.parse('$_serverUrl/token');
       developer.log('POST $url', name: 'LofiGirl');
       if (url.isAbsolute) {
-        var request = TokenRequest(_lastFmSessionKey, _listenBrainzToken);
+        final request = TokenRequest(
+            _lastFmSessionKey != null ? SecureString(_lastFmSessionKey!) : null,
+            _listenBrainzToken != null
+                ? SecureString(_listenBrainzToken!)
+                : null);
         final body = json.encode(request.toJson());
         final response = await http.post(
           url,
@@ -287,10 +294,11 @@ class _LofiGirlState extends State<LofiGirl> {
           body: body,
         );
         if (response.statusCode == 200) {
-          final token = json.decode(response.body)['token'];
+          final secureToken =
+              SecureString.fromJson(json.decode(response.body)["secure_token"]);
           setState(() {
-            _sessionToken = token;
-            prefs.setString("sessionToken", token);
+            _sessionToken = secureToken.value;
+            prefs.setString("sessionToken", secureToken.value);
           });
           const snackBar = SnackBar(
             content: Text('Session token is set!'),

@@ -2,6 +2,7 @@ use crate::config::Config;
 use anyhow::Result;
 
 use lofigirl_shared_common::config::LastFMClientConfig;
+
 use lofigirl_shared_common::track::Track;
 
 use url::Url;
@@ -20,6 +21,7 @@ use {
     lofigirl_shared_common::config::ConfigError,
     lofigirl_shared_common::config::LastFMClientPasswordConfig,
     lofigirl_shared_common::config::LastFMClientSessionConfig,
+    lofigirl_shared_common::jwt::JWTClaims,
     lofigirl_shared_common::LASTFM_SESSION_END_POINT,
     lofigirl_shared_common::SEND_END_POINT,
     lofigirl_shared_common::TOKEN_END_POINT,
@@ -250,23 +252,24 @@ impl Worker {
         let token_response = client
             .post(&format!("{}{}", base_url, TOKEN_END_POINT))
             .json(&TokenRequest {
-                lastfm_session_key,
-                listenbrainz_token,
+                secure_lastfm_session_key: lastfm_session_key.map(|s| s.into()),
+                secure_listenbrainz_token: listenbrainz_token.map(|s| s.into()),
             })
             .send()
             .await?
             .json::<TokenResponse>()
             .await?;
-        Ok(token_response.token)
+        Ok(token_response.secure_token.into())
     }
 
     async fn post_track(&self, track: &Track, action: Action) -> Result<()> {
+        let jwt_token = JWTClaims::encode(self.token.to_owned())?;
         self.client
             .post(&self.track_send_url)
+            .header("Authorization", "Bearer ".to_owned() + &jwt_token)
             .json(&ScrobbleRequest {
                 action,
                 track: track.to_owned(),
-                token: self.token.to_owned(),
             })
             .send()
             .await?;
@@ -281,13 +284,16 @@ impl Worker {
         let session_response = client
             .post(&format!("{}{}", base_url, LASTFM_SESSION_END_POINT))
             .json(&SessionRequest {
-                password_config: password_config.clone(),
+                username: password_config.username.clone(),
+                secure_password: password_config.password.clone().into(),
             })
             .send()
             .await?
             .json::<SessionResponse>()
             .await?;
-        Ok(session_response.session_config)
+        Ok(LastFMClientSessionConfig {
+            session_key: session_response.secure_session_key.into(),
+        })
     }
 
     async fn work_with_connection(&self) -> anyhow::Result<()> {
