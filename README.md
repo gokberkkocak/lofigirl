@@ -110,7 +110,11 @@ port = 8888
 
 Both LastFM and ListenBrainz are optional. You can use one or both depending however you want.
 
+## Security
+
 LastFM username and password only used once to receive the ```session_key``` and they are not stored. Only LastFM session_key and ListenBrainz token are stored on server side which can be seen in the [server table schema](migrations/20210525000135_table.sql).
+
+Token exchange and lastfm session key retrival is done by AES256-GCM encryption however, the pre-compiled binaries and docker images will be using the default hard-coded key in the source code that, it's not 100% secure. If you are worried that someone may know that you are using this application and find the key from here, change the [ENCRYPTION_KEY_BASE64](./lofigirl_shared_common/src/lib.rs) on rust side and [aesKey](./lofigirl_flutter_client/lib/security.dart) on flutter side with your own key. The key needs the same matching and should be 44 bytes base64 - i.e. encoded from 32 bytes string/data hence 256 bits key.  
 
 ## Usage
 
@@ -180,7 +184,3 @@ It works the same way for the second stream as well.
 - Sending to LastFM and ListenBrainz.
 ![lastfm_2](images/example_2_lastfm.png)
 ![listenbrainz_2](images/example_2_listenbrainz.png)
-
-<!-- # Limitations
-
-It's known that opencv occasionally (sometimes consecutively) fails to read header information from streams but I haven't managed to find the direct cause of this problem. Because of it, it's possible that some listen information might not be sent. Even with no guarantees, it's better than nothing! -->

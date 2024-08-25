@@ -327,7 +327,6 @@ async fn post_track_action(
         .json(&ScrobbleRequest {
             action,
             track,
-            // token: token.to_owned().into(),
         })?
         .send()
         .await?;

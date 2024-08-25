@@ -270,7 +270,6 @@ impl Worker {
             .json(&ScrobbleRequest {
                 action,
                 track: track.to_owned(),
-                // token: self.token.to_owned().into(),
             })
             .send()
             .await?;
