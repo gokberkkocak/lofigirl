@@ -1,7 +1,6 @@
 use anyhow::Result;
 use rand::Rng;
 use std::io::Write;
-use tempfile::{NamedTempFile, TempDir};
 use thiserror::Error;
 use tracing::info;
 use url::Url;
@@ -32,9 +31,8 @@ impl YoutubeLinkCapturer {
 
 #[cfg(not(feature = "alt_yt_backend"))]
 pub struct YoutubeLinkCapturer {
-    temp_dir: TempDir,
-    last_persistent_fetch_path: std::path::PathBuf,
-    last_persistent_fetch_path_str: String,
+    _temp_dir: tempfile::TempDir,
+    chunk_path: std::path::PathBuf,
 }
 #[cfg(not(feature = "alt_yt_backend"))]
 impl YoutubeLinkCapturer {
@@ -42,18 +40,12 @@ impl YoutubeLinkCapturer {
         let mut rng = rand::thread_rng();
         let random_suffix = rng.gen::<u64>();
         let temp_dir = tempfile::tempdir()?;
-        let last_persistent_fetch_path = temp_dir
+        let chunk_path = temp_dir
             .path()
             .join(format!("current_chunk_{}", random_suffix));
-        let last_persistent_fetch_path_str = last_persistent_fetch_path
-            .as_os_str()
-            .to_str()
-            .ok_or(CaptureError::YoutubeLinkCaptureError)?
-            .to_owned();
         Ok(YoutubeLinkCapturer {
-            temp_dir,
-            last_persistent_fetch_path,
-            last_persistent_fetch_path_str,
+            _temp_dir: temp_dir,
+            chunk_path,
         })
     }
     pub async fn get_raw_link(&self, url: &Url) -> Result<String> {
@@ -64,16 +56,19 @@ impl YoutubeLinkCapturer {
         let video = rusty_ytdl::Video::new_with_options(url.as_str(), video_options)?;
         let stream = video.stream().await?;
         // get one chunk and save to temp
-        let mut raw_file = NamedTempFile::new_in(&self.temp_dir)?;
+        let mut raw_file = std::fs::File::create(&self.chunk_path)?;
         if let Some(chunk) = stream.chunk().await? {
             raw_file.write_all(&chunk)?;
         }
-        raw_file.persist(&self.last_persistent_fetch_path)?;
+        let chunk_path_str = self
+            .chunk_path
+            .to_str()
+            .ok_or(CaptureError::YoutubeLinkCaptureError)?;
         info!(
             "Raw stream snapshot is captured using rusty_ytdl to file: {}",
-            &self.last_persistent_fetch_path_str
+            chunk_path_str
         );
-        Ok(self.last_persistent_fetch_path_str.to_owned())
+        Ok(chunk_path_str.to_owned())
     }
 }
 
