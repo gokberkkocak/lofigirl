@@ -2755,7 +2755,7 @@ dependencies = [
  "lofigirl_sys",
  "notify-rust",
  "percent-encoding",
- "reqwest 0.12.8",
+ "reqwest 0.12.9",
  "reqwest-websocket",
  "serde",
  "serde_json",
@@ -3815,9 +3815,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.8"
+version = "0.12.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f713147fbe92361e52392c73b8c9e48c04c6625bce969ef54dc901e58e042a7b"
+checksum = "a77c62af46e79de0a562e1a9849205ffcb7fc1238876e9bd743357570e04046f"
 dependencies = [
  "async-compression",
  "base64 0.22.1",
@@ -3869,7 +3869,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.1.0",
- "reqwest 0.12.8",
+ "reqwest 0.12.9",
  "serde",
  "thiserror",
  "tower-service",
@@ -3888,7 +3888,7 @@ dependencies = [
  "http 1.1.0",
  "hyper 1.4.1",
  "parking_lot 0.11.2",
- "reqwest 0.12.8",
+ "reqwest 0.12.9",
  "reqwest-middleware",
  "retry-policies",
  "tokio",
@@ -3904,7 +3904,7 @@ checksum = "8dd71dc5a9a049b062c671cb05b3becae446b82a853c89c058161e256a84f52e"
 dependencies = [
  "async-tungstenite",
  "futures-util",
- "reqwest 0.12.8",
+ "reqwest 0.12.9",
  "thiserror",
  "tokio",
  "tokio-util",
@@ -4104,7 +4104,7 @@ dependencies = [
  "once_cell",
  "rand",
  "regex",
- "reqwest 0.12.8",
+ "reqwest 0.12.9",
  "reqwest-middleware",
  "reqwest-retry",
  "scraper",
