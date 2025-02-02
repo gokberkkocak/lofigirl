@@ -37,8 +37,8 @@ pub struct YoutubeLinkCapturer {
 #[cfg(not(feature = "alt_yt_backend"))]
 impl YoutubeLinkCapturer {
     pub fn new() -> Result<Self> {
-        let mut rng = rand::thread_rng();
-        let random_suffix = rng.gen::<u64>();
+        let mut rng = rand::rng();
+        let random_suffix = rng.random::<u64>();
         let temp_dir = tempfile::tempdir()?;
         let chunk_path = temp_dir
             .path()
