@@ -16,7 +16,7 @@ anyhow = "1.0"
 thiserror = "2.0"
 url = "2.5"
 tracing = "0.1"
-tempfile = "3.16"
+tempfile = "3.17"
 rand = "0.9"
 
 [features]
