@@ -1882,9 +1882,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26145e563e54f2cadc477553f1ec5ee650b00862f0a58bcd12cbdc5f0ea2d2f4"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi",
  "wasi 0.14.2+wasi-0.2.4",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2983,12 +2985,14 @@ name = "lofigirl_web_client"
 version = "0.3.0"
 dependencies = [
  "anyhow",
+ "getrandom 0.3.3",
  "gloo-console",
  "gloo-net",
  "gloo-storage",
  "lofigirl_shared_common",
  "seed",
  "serde-json-wasm",
+ "uuid",
  "wasm-bindgen-test",
 ]
 
@@ -5561,6 +5565,16 @@ name = "uuid"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
+dependencies = [
+ "getrandom 0.3.3",
+ "uuid-rng-internal",
+]
+
+[[package]]
+name = "uuid-rng-internal"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9376f53b15ed85851c10175b5e45f0af556b4853ff3fe335080b337e3828981e"
 dependencies = [
  "getrandom 0.3.3",
 ]
