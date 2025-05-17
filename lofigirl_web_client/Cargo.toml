@@ -25,8 +25,7 @@ lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 version = "1.16"
 features = ["v4", "rng-getrandom"]
 
-[dependencies.getrandom_v03]
-package = "getrandom"
+[dependencies.getrandom]
 version = "0.3"
 features = ["wasm_js"]
 
