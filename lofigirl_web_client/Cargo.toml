@@ -22,7 +22,7 @@ serde-json-wasm = "1.0"
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
 
 [dependencies.uuid]
-version = "1.16"
+version = "1.18"
 features = ["v4", "rng-getrandom"]
 
 [dependencies.getrandom]
