@@ -29,6 +29,8 @@ COPY --from=builder /app/bin/lofigirl_client_standalone /usr/bin/
 
 RUN apt update
 RUN apt upgrade -y
-RUN apt install -y libopencv-dev libleptonica-dev libtesseract-dev tesseract-ocr-eng
+RUN apt install -y libopencv-dev libleptonica-dev libtesseract-dev tesseract-ocr-eng python3 python3-pip
+
+RUN pip3 install --break-system-packages yt-dlp
 
 ENTRYPOINT [ "lofigirl_server" ]

@@ -8,16 +8,19 @@ edition = "2024"
 
 [dependencies]
 lofigirl_shared_common = { path = "../lofigirl_shared_common"}
-opencv = { version = "0.94", features = ["clang-runtime"] }
+opencv = { version = "0.95", features = ["clang-runtime"] }
 rustube = { version = "0.6", optional = true }
-rusty_ytdl = { git = "https://github.com/Mithronn/rusty_ytdl/", branch = "main"}
+rusty_ytdl = { git = "https://github.com/Mithronn/rusty_ytdl/", branch = "main", optional = true }
 leptess = "0.14"
 anyhow = "1.0"
 thiserror = "2.0"
 url = "2.5"
 tracing = "0.1"
-tempfile = "3.20"
+tempfile = "3.23"
 rand = "0.9"
 
 [features]
-alt_yt_backend = ["rustube"]
+default = ["native_yt_dlp"]
+native_yt_dlp = []
+rustube_backend = ["rustube"]
+rusty_ytdl_backend = ["rusty_ytdl"]

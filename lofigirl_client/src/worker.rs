@@ -313,7 +313,7 @@ impl Worker {
         // Setup periodic ping message
         tokio::spawn(async move {
             loop {
-                if tx.send(Message::Ping(vec![])).await.is_err() {
+                if tx.send(Message::Ping(vec![].into())).await.is_err() {
                     break;
                 }
                 tokio::time::sleep(*CLIENT_PING_INTERVAL).await;
