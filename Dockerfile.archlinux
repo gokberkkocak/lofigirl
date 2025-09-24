@@ -28,6 +28,6 @@ COPY --from=builder /app/bin/lofigirl_client_standalone /usr/bin/
 
 RUN pacman-key --init
 RUN pacman --noconfirm -Syu
-RUN pacman --noconfirm -S opencv vtk hdf5 qt5-base glew tesseract tesseract-data-eng 
+RUN pacman --noconfirm -S opencv vtk hdf5 qt5-base glew tesseract tesseract-data-eng yt-dlp
 
 ENTRYPOINT [ "lofigirl_server" ]
