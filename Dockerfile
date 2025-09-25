@@ -2,8 +2,6 @@ FROM debian:bookworm AS base
 
 WORKDIR /app
 
-COPY ./ ./
-
 RUN apt update
 RUN apt upgrade -y
 RUN apt install -y build-essential libopencv-dev curl libssl-dev libleptonica-dev clang libclang-dev libtesseract-dev pkg-config sqlite3

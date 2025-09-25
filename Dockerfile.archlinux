@@ -2,8 +2,6 @@ FROM archlinux AS base
 
 WORKDIR /app
 
-COPY ./ ./
-
 RUN pacman-key --init
 RUN pacman --noconfirm -Syu
 RUN pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract clang rust sqlite cargo-binstall 

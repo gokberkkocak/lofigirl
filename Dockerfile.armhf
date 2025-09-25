@@ -2,8 +2,6 @@ FROM debian:bookworm AS base
 
 WORKDIR /app
 
-COPY ./ ./
-
 RUN dpkg --add-architecture armhf
 RUN apt update
 RUN apt upgrade -y
