@@ -22,7 +22,7 @@ jobs:
         platform: [{name: "x86_64", suffix: ""}, {name: "arm64", suffix: ".arm64"}, {name: "armhf", suffix: ".armhf"}]
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Build docker image for one stage
       uses: docker/build-push-action@v6
       with:
