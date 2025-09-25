@@ -1,4 +1,4 @@
-FROM debian:bookworm AS builder
+FROM debian:bookworm AS base
 
 WORKDIR /app
 
@@ -17,7 +17,22 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rustup target add aarch64-unknown-linux-gnu
 RUN mkdir /.cargo && \
-    echo '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"' >> /.cargo/config
+    echo '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"' >> /.cargo/config.toml
+RUN cargo install cargo-chef
+
+FROM base AS planner
+
+COPY ./ ./
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM base as builder
+
+COPY --from=planner /app/recipe.json recipe.json
+
+RUN cargo chef cook --release --target aarch64-unknown-linux-gnu --recipe-path recipe.json
+
+COPY ./ ./
 
 ENV DATABASE_URL=sqlite:token.db
 RUN sqlite3 token.db < migrations/20210525000135_table.sql 
