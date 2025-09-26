@@ -17,7 +17,7 @@ COPY ./ ./
 
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM base as builder
+FROM base AS builder
 
 COPY --from=planner /app/recipe.json recipe.json
 
@@ -35,7 +35,7 @@ RUN cargo build --release -p lofigirl_client -p lofigirl_server
 RUN mv ./target/release/lofigirl_client /app/bin/
 RUN mv ./target/release/lofigirl_server /app/bin/
 
-FROM debian:bookworm as runner
+FROM debian:bookworm AS runner
 
 COPY --from=builder /app/bin/lofigirl_client /usr/bin/
 COPY --from=builder /app/bin/lofigirl_server /usr/bin/
