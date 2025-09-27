@@ -1,14 +1,27 @@
-FROM archlinux AS builder
+FROM archlinux AS base
 
 WORKDIR /app
 
-COPY ./ ./
-
 RUN pacman-key --init
 RUN pacman --noconfirm -Syu
-RUN pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract clang rustup sqlite
+RUN pacman --noconfirm -S openssl pkgconf opencv vtk hdf5 qt5-base glew tesseract clang rust sqlite cargo-binstall 
 
-RUN rustup toolchain install stable
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN cargo binstall cargo-chef
+
+FROM base AS planner
+
+COPY ./ ./
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM base as builder
+
+COPY --from=planner /app/recipe.json recipe.json
+
+RUN cargo chef cook --release --recipe-path recipe.json
+
+COPY ./ ./
 
 ENV DATABASE_URL=sqlite:token.db
 RUN sqlite3 token.db < migrations/20210525000135_table.sql 
@@ -20,7 +33,7 @@ RUN cargo build --release -p lofigirl_client -p lofigirl_server
 RUN mv ./target/release/lofigirl_client /app/bin/
 RUN mv ./target/release/lofigirl_server /app/bin/
 
-FROM archlinux as runner
+FROM archlinux AS runner
 
 COPY --from=builder /app/bin/lofigirl_client /usr/bin/
 COPY --from=builder /app/bin/lofigirl_server /usr/bin/
