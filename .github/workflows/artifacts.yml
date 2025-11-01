@@ -36,19 +36,19 @@ jobs:
         mkdir -p ${{ github.workspace }}/bin
         docker cp $(docker create lofigirl:latest):/app/bin/. ${{ github.workspace }}/bin
     - name: Archive production artifact - server
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: lofigirl_server_linux_${{ matrix.platform.name }}
         path: ${{ github.workspace }}/bin/lofigirl_server
         overwrite: true
     - name: Archive production artifact - client
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: lofigirl_client_linux_${{ matrix.platform.name }}
         path: ${{ github.workspace }}/bin/lofigirl_client
         overwrite: true
     - name: Archive production artifact - standalone client
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: lofigirl_client_standalone_linux_${{ matrix.platform.name }}
         path: ${{ github.workspace }}/bin/lofigirl_client_standalone
