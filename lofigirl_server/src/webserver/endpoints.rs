@@ -120,6 +120,7 @@ pub(crate) async fn track_socket(
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, body)?;
     actix_web::rt::spawn(async move {
         let last_ping = Arc::new(RwLock::new(Instant::now()));
+        let active_youtube_ids: Arc<RwLock<Vec<String>>> = Arc::new(RwLock::new(Vec::new()));
         while let Some(Ok(msg)) = msg_stream.next().await {
             match msg {
                 Message::Text(msg) => match Url::parse(&msg) {
@@ -130,18 +131,13 @@ pub(crate) async fn track_socket(
                         let youtube_id = youtube_url.get_video_id();
                         match youtube_id {
                             Some(youtube_id) => {
-                                let youtube_id_clone = youtube_id.clone();
-                                actix_rt::spawn(async move {
-                                    // periodic update
-                                    loop {
-                                        {
-                                            let mut last_requested = state.last_requested.write();
-                                            last_requested
-                                                .insert(youtube_id_clone.clone(), Instant::now());
-                                        }
-                                        tokio::time::sleep(*REGULAR_INTERVAL).await;
-                                    }
-                                });
+                                // Update last_requested time immediately
+                                {
+                                    let mut last_requested = state.last_requested.write();
+                                    last_requested.insert(youtube_id.clone(), Instant::now());
+                                }
+                                // Track this youtube_id for this websocket connection
+                                active_youtube_ids.write().push(youtube_id.clone());
                                 // Check if there is a worker already find its rx channel otherwise create worker and bring its rx channel
                                 let state = data.clone();
                                 let should_reuse =
@@ -182,16 +178,26 @@ pub(crate) async fn track_socket(
 
                                 // send new message on channel update
                                 let mut session_clone = session.clone();
+                                let youtube_id_for_cleanup = youtube_id.clone();
+                                let state_for_cleanup = state.clone();
                                 actix_rt::spawn(async move {
                                     loop {
                                         if rx.changed().await.is_err() {
+                                            // Worker stopped, clean up the channel entry
+                                            state_for_cleanup.track_channels.write().remove(&youtube_id_for_cleanup);
                                             break;
                                         }
                                         let track = rx.borrow_and_update().clone();
                                         // if track is empty, we might have created the channel with default empty track
                                         // so skip this and wait for the next one
                                         if !track.is_empty() {
-                                            let ser_track = serde_json::to_string(&track).unwrap();
+                                            let ser_track = match serde_json::to_string(&track) {
+                                                Ok(s) => s,
+                                                Err(e) => {
+                                                    warn!("Failed to serialize track: {}", e);
+                                                    continue;
+                                                }
+                                            };
                                             if session_clone.text(ser_track).await.is_err() {
                                                 break;
                                             }
@@ -230,7 +236,18 @@ pub(crate) async fn track_socket(
                     info!("Server received ping from socket");
                     // client ping updates last ping and also last requested for server worker
                     *last_ping.write() = Instant::now();
-                    session.pong(&bytes).await.unwrap();
+                    // Update last_requested for all active youtube_ids to keep workers alive
+                    {
+                        let mut last_requested = data.last_requested.write();
+                        let now = Instant::now();
+                        for youtube_id in active_youtube_ids.read().iter() {
+                            last_requested.insert(youtube_id.clone(), now);
+                        }
+                    }
+                    if session.pong(&bytes).await.is_err() {
+                        warn!("Failed to send pong, closing connection");
+                        break;
+                    }
                 }
                 _ => break,
             }

@@ -27,7 +27,7 @@ use {
     lofigirl_shared_common::TOKEN_END_POINT,
     lofigirl_shared_common::{CLIENT_PING_INTERVAL, TRACK_SOCKET_END_POINT},
     reqwest::Client,
-    reqwest_websocket::{Message, RequestBuilderExt},
+    reqwest_websocket::{Message, Upgrade},
     tracing::info,
 };
 
