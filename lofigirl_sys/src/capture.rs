@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rand::Rng;
+use rand::RngExt;
 use thiserror::Error;
 use tracing::info;
 use url::Url;

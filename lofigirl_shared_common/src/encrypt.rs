@@ -1,9 +1,9 @@
 use std::{fmt, sync::LazyLock};
 
 use aes_gcm::{
-    aead::{generic_array::GenericArray, Aead, OsRng},
+    aead::{Aead, Generate},
     aes::Aes256,
-    AeadCore, Aes256Gcm, AesGcm, Key, KeyInit as _,
+    Aes256Gcm, AesGcm, Key, KeyInit as _, Nonce,
 };
 use base64::{engine::general_purpose, Engine as _};
 use serde::{
@@ -25,17 +25,17 @@ static AES_CIPHER: LazyLock<AesGcm<Aes256, U12>> = LazyLock::new(|| {
 });
 
 pub trait Aes256GCMEncryption {
-    fn encrypt(&self) -> anyhow::Result<(Vec<u8>, GenericArray<u8, U12>)>
+    fn encrypt(&self) -> anyhow::Result<(Vec<u8>, Nonce<U12>)>
     where
         Self: Sized;
-    fn decrypt(encrypted: Vec<u8>, nonce: &GenericArray<u8, U12>) -> anyhow::Result<Self>
+    fn decrypt(encrypted: Vec<u8>, nonce: &Nonce<U12>) -> anyhow::Result<Self>
     where
         Self: Sized;
 }
 
 impl Aes256GCMEncryption for String {
-    fn encrypt(&self) -> anyhow::Result<(Vec<u8>, GenericArray<u8, U12>)>{
-        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+    fn encrypt(&self) -> anyhow::Result<(Vec<u8>, Nonce<U12>)>{
+        let nonce = Nonce::<U12>::generate(); // MUST be unique per message
         let ciphertext = AES_CIPHER
             .encrypt(&nonce, self.as_bytes())
             .map_err(anyhow::Error::msg)?;
@@ -43,7 +43,7 @@ impl Aes256GCMEncryption for String {
         Ok((ciphertext, nonce))
     }
 
-    fn decrypt(encrypted: Vec<u8>, nonce: &GenericArray<u8, U12>) -> anyhow::Result<Self> {
+    fn decrypt(encrypted: Vec<u8>, nonce: &Nonce<U12>) -> anyhow::Result<Self> {
         // let ciphertext = general_purpose::STANDARD.decode(self)?;
         let plaintext = AES_CIPHER
             .decrypt(nonce, encrypted.as_ref())
@@ -121,11 +121,12 @@ impl<'de> Visitor<'de> for CustomVisitor {
             let nonce_array = general_purpose::STANDARD
                 .decode(nonce_base64)
                 .map_err(serde::de::Error::custom)?;
-            let nonce = GenericArray::from_slice(&nonce_array);
+            let nonce = Nonce::<U12>::try_from(nonce_array.as_slice())
+                .map_err(serde::de::Error::custom)?;
             let encrypted = general_purpose::STANDARD
                 .decode(encrypted_base64)
                 .map_err(serde::de::Error::custom)?;
-            let text = String::decrypt(encrypted, nonce).map_err(serde::de::Error::custom)?;
+            let text = String::decrypt(encrypted, &nonce).map_err(serde::de::Error::custom)?;
             Ok(SecureString(text))
         } else {
             Err(serde::de::Error::custom("Missing key(s)"))
